@@ -4,6 +4,15 @@ from cryptography.x509 import CertificateBuilder, Name, NameAttribute, SubjectAl
 from cryptography.x509.oid import NameOID
 from datetime import datetime, timedelta
 import os
+import hashlib
+
+
+def calculate_md5(file_path):
+    hash_md5 = hashlib.md5()
+    with open(file_path, "rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
 
 
 def _generate_private_key(save_path):
