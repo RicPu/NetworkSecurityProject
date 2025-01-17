@@ -3,22 +3,48 @@ import logging
 from aioquic.asyncio.server import serve
 from aioquic.asyncio.protocol import QuicConnectionProtocol
 from aioquic.quic.configuration import QuicConfiguration
-from key_cert_gen import gen_key_cert
+from aioquic.quic.events import StreamDataReceived
+from utils import gen_key_cert
+
+logging.basicConfig(level=logging.INFO)
+
+
+class FileTransferProtocol(QuicConnectionProtocol):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.stream_data = {}
+
+    def quic_event_received(self, event):
+        if isinstance(event, StreamDataReceived):
+            stream_id = event.stream_id
+            data = event.data
+
+            logging.info(f"Received chunk of size {len(data)} on stream {stream_id}")
+
+            if stream_id not in self.stream_data:
+                self.stream_data[stream_id] = bytearray()
+            self.stream_data[stream_id].extend(data)
+
+            if event.end_stream:
+                with open(f"received_image_{stream_id}.jpg", "wb") as file:
+                    file.write(self.stream_data[stream_id])
+
+                logging.info(f"Image received and saved as 'received_image_{stream_id}.jpg'")
+                del self.stream_data[stream_id]
 
 
 async def main(host: str, port: int, configuration: QuicConfiguration):
     await serve(
         host, port, configuration=configuration,
-        create_protocol=QuicConnectionProtocol
+        create_protocol=FileTransferProtocol
     )
-    print("Server running...")
+    logging.info("Server running...")
     await asyncio.Future()
+
 
 if __name__ == "__main__":
     host = "::"
     port = 4433
-
-    logging.basicConfig(level=logging.INFO)
 
     gen_key_cert()
 
