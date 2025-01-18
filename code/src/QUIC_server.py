@@ -1,3 +1,4 @@
+import json
 import asyncio
 import logging
 from aioquic.quic.events import StreamDataReceived
@@ -15,22 +16,41 @@ class FileTransferProtocol(QuicConnectionProtocol):
         super().__init__(*args, **kwargs)
         self.stream_data = {}
 
+    def parse_metadata(self, data):
+        try:
+            metadata, remaining_data = data.split(b'\n', 1)
+            return json.loads(metadata.decode()), remaining_data
+        except Exception as e:
+            logging.error(f"Error parsing metadata: {e}")
+            return None, data
+
     def quic_event_received(self, event):
         if isinstance(event, StreamDataReceived):
             stream_id = event.stream_id
             data = event.data
 
-            logging.info(f"Received chunk of size {len(data)} on stream {stream_id}")
-
             if stream_id not in self.stream_data:
-                self.stream_data[stream_id] = bytearray()
-            self.stream_data[stream_id].extend(data)
+                metadata, remaining_data = self.parse_metadata(data)
+                if metadata:
+                    file_name  = metadata.get("file_name", f"received_file_{stream_id}")
+                    self.stream_data[stream_id] = {
+                        "data": bytearray(remaining_data),
+                        "file_name": file_name
+                    }
+                else:
+                    self.stream_data[stream_id] = {
+                        "data": bytearray(data),
+                        "file_name": f"received_file_{stream_id}"
+                    }
+            
+            else:
+                self.stream_data[stream_id]["data"].extend(data)
 
             if event.end_stream:
-                with open(f"received_image_{stream_id}.jpg", "wb") as file:
-                    file.write(self.stream_data[stream_id])
-
-                logging.info(f"Image received and saved as 'received_image_{stream_id}.jpg'")
+                file_name = self.stream_data[stream_id]["file_name"]
+                with open(file_name, "wb") as file:
+                    file.write(self.stream_data[stream_id]["data"])
+                logging.info(f"File saved as '{file_name}'")
                 del self.stream_data[stream_id]
 
 
