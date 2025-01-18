@@ -1,10 +1,11 @@
 import asyncio
 import logging
-from aioquic.asyncio.server import serve
-from aioquic.asyncio.protocol import QuicConnectionProtocol
-from aioquic.quic.configuration import QuicConfiguration
 from aioquic.quic.events import StreamDataReceived
+from aioquic.quic.configuration import QuicConfiguration
+from aioquic.asyncio.protocol import QuicConnectionProtocol
+from aioquic.asyncio.server import serve
 from utils import gen_key_cert
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -45,8 +46,7 @@ async def main(host: str, port: int, configuration: QuicConfiguration):
 if __name__ == "__main__":
     host = "::"
     port = 4433
-
-    gen_key_cert()
+    gen_key_cert() # Generate private key and certificate
 
     configuration = QuicConfiguration(is_client=False)
     configuration.load_cert_chain(

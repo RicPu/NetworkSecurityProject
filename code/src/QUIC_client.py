@@ -1,10 +1,11 @@
 import ssl
 import asyncio
 import logging
+from aioquic.quic.events import HandshakeCompleted
+from aioquic.quic.configuration import QuicConfiguration
 from aioquic.asyncio.protocol import QuicConnectionProtocol
 from aioquic.asyncio.client import connect
-from aioquic.quic.configuration import QuicConfiguration
-from aioquic.quic.events import HandshakeCompleted
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -47,7 +48,7 @@ async def send_image(host: str, port: int, image_path: str, configuration: QuicC
 if __name__ == "__main__":
     host = "localhost"
     port = 4433
-    image_path = "code/assets/Summer_1.png"
+    image_path = "path/to/image.png"
 
     configuration = QuicConfiguration(is_client=True)
     configuration.verify_mode = ssl.CERT_NONE
