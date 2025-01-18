@@ -61,7 +61,8 @@ async def send_file(host: str, port: int, file_path: str, configuration: QuicCon
             logging.info(f"File {file_path} sent successfully.")
         finally:
             writer.close()
-
+            # await writer.wait_closed() should be used here, but it's not working right now
+            
         protocol.close()
         await protocol.wait_closed()
         logging.info("QUIC connection closed.")
