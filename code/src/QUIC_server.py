@@ -1,7 +1,7 @@
 import json
 import asyncio
 import logging
-from aioquic.quic.events import StreamDataReceived
+from aioquic.quic.events import StreamDataReceived, HandshakeCompleted, ConnectionTerminated
 from aioquic.quic.configuration import QuicConfiguration
 from aioquic.asyncio.protocol import QuicConnectionProtocol
 from aioquic.asyncio.server import serve
@@ -15,6 +15,7 @@ class FileTransferProtocol(QuicConnectionProtocol):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.stream_data = {}
+        self.connected_event = asyncio.Event()
 
     def parse_metadata(self, data):
         try:
@@ -25,7 +26,11 @@ class FileTransferProtocol(QuicConnectionProtocol):
             return None, data
 
     def quic_event_received(self, event):
-        if isinstance(event, StreamDataReceived):
+        if isinstance(event, HandshakeCompleted):
+            logging.info("Handshake completed!")
+            self.connected_event.set()
+
+        elif isinstance(event, StreamDataReceived):
             stream_id = event.stream_id
             data = event.data
 
@@ -51,7 +56,10 @@ class FileTransferProtocol(QuicConnectionProtocol):
                 with open(file_name, "wb") as file:
                     file.write(self.stream_data[stream_id]["data"])
                 logging.info(f"File saved as '{file_name}'")
-                del self.stream_data[stream_id]
+
+                self.stream_data.pop(stream_id, None)
+        elif isinstance(event, ConnectionTerminated):
+            logging.info(f"Connection terminated: {event.error_code}, reason: {event.frame_type}")
 
 
 async def main(host: str, port: int, configuration: QuicConfiguration):
