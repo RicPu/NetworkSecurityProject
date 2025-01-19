@@ -16,18 +16,19 @@ class FileTransferProtocol(QuicConnectionProtocol):
         super().__init__(*args, **kwargs)
         self.stream_data = {}
         self.connected_event = asyncio.Event()
+        self.logger = logging.getLogger(__name__)
 
     def parse_metadata(self, data):
         try:
             metadata, remaining_data = data.split(b'\n', 1)
             return json.loads(metadata.decode()), remaining_data
         except Exception as e:
-            logging.error(f"Error parsing metadata: {e}")
+            self.logger.error(f"Error parsing metadata: {e}")
             return None, data
 
     def quic_event_received(self, event):
         if isinstance(event, HandshakeCompleted):
-            logging.info("Handshake completed!")
+            self.logger.info("Handshake completed!")
             self.connected_event.set()
 
         elif isinstance(event, StreamDataReceived):
@@ -55,11 +56,11 @@ class FileTransferProtocol(QuicConnectionProtocol):
                 file_name = self.stream_data[stream_id]["file_name"]
                 with open(file_name, "wb") as file:
                     file.write(self.stream_data[stream_id]["data"])
-                logging.info(f"File saved as '{file_name}'")
+                self.logger.info(f"File saved as '{file_name}'")
 
                 self.stream_data.pop(stream_id, None)
         elif isinstance(event, ConnectionTerminated):
-            logging.info(f"Connection terminated: {event.error_code}, reason: {event.frame_type}")
+            self.logger.info(f"Connection terminated: {event.error_code}, reason: {event.frame_type}")
 
 
 async def main(host: str, port: int, configuration: QuicConfiguration):

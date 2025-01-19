@@ -16,19 +16,20 @@ class FileTransferClient(QuicConnectionProtocol):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.connected_event = asyncio.Event()
+        self.logger = logging.getLogger(__name__)
 
     # For debugging purposes
     def quic_event_received(self, event: QuicEvent):
         if isinstance(event, HandshakeCompleted):
-            logging.info("Handshake completed!")
+            self.logger.info("Handshake completed!")
             self.connected_event.set()
         elif isinstance(event, StreamDataReceived):
-            logging.info(f"Stream data received: {len(event.data)} bytes on stream {event.stream_id}")
+            self.logger.info(f"Stream data received: {len(event.data)} bytes on stream {event.stream_id}")
         elif isinstance(event, ConnectionTerminated):
-            logging.info(f"Connection terminated: {event.error_code}, reason: {event.frame_type}")
+            self.logger.info(f"Connection terminated: {event.error_code}, reason: {event.frame_type}")
     
     def close(self):
-        logging.info("Closing connection.")
+        self.logger.info("Closing connection.")
         super().close()
 
 
