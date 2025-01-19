@@ -1,6 +1,7 @@
 import socket
 import ssl
 import os
+import json
 import logging
 
 
@@ -13,7 +14,6 @@ class TLSClient:
         self.port = port
         self.certfile = certfile
 
-        logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
 
         self.context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
@@ -30,13 +30,19 @@ class TLSClient:
         file_name = os.path.basename(file_path)
         file_size = os.path.getsize(file_path)
 
+        metadata = json.dumps({
+            "file_name": file_name,
+            "file_size": file_size
+        }).encode()
+
         try:
-            ssock.sendall(f"{file_name}, {file_size}\n".encode())
+            ssock.sendall(metadata + b'\n')
 
             with open(file_path, "rb") as file:
                 while chunk := file.read(4096):
                     ssock.sendall(chunk)
             self.logger.info(f"File {file_name} sent successfully.")
+            
         except Exception as e:
             self.logger.error(f"Error sending file: {e}")
 
