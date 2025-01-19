@@ -1,3 +1,4 @@
+import os
 import json
 import asyncio
 import logging
@@ -22,9 +23,22 @@ class FileTransferProtocol(QuicConnectionProtocol):
         try:
             metadata, remaining_data = data.split(b'\n', 1)
             return json.loads(metadata.decode()), remaining_data
+        
         except Exception as e:
             self.logger.error(f"Error parsing metadata: {e}")
             return None, data
+
+    def save_file(self, file_name, file_data):
+        try:
+            os.makedirs("received_files", exist_ok=True)
+            output_path = os.path.join("received_files", file_name)
+
+            with open(output_path, "wb") as file:
+                file.write(file_data)
+            self.logger.info(f"File saved as '{output_path}'")
+
+        except Exception as e:
+            self.logger.error(f"Error saving file '{file_name}': {e}")
 
     def quic_event_received(self, event):
         if isinstance(event, HandshakeCompleted):
@@ -38,12 +52,13 @@ class FileTransferProtocol(QuicConnectionProtocol):
             if stream_id not in self.stream_data:
                 metadata, remaining_data = self.parse_metadata(data)
                 if metadata:
-                    file_name  = metadata.get("file_name", f"received_file_{stream_id}")
+                    file_name = metadata.get("file_name", f"received_file_{stream_id}")
                     self.stream_data[stream_id] = {
                         "data": bytearray(remaining_data),
                         "file_name": file_name
                     }
                 else:
+                    self.logger.warning("Metadata missing. Using default filename.")
                     self.stream_data[stream_id] = {
                         "data": bytearray(data),
                         "file_name": f"received_file_{stream_id}"
@@ -54,11 +69,9 @@ class FileTransferProtocol(QuicConnectionProtocol):
 
             if event.end_stream:
                 file_name = self.stream_data[stream_id]["file_name"]
-                with open(file_name, "wb") as file:
-                    file.write(self.stream_data[stream_id]["data"])
-                self.logger.info(f"File saved as '{file_name}'")
-
+                self.save_file(file_name, self.stream_data[stream_id]["data"])
                 self.stream_data.pop(stream_id, None)
+
         elif isinstance(event, ConnectionTerminated):
             self.logger.info(f"Connection terminated: {event.error_code}, reason: {event.frame_type}")
 

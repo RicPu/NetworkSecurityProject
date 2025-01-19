@@ -60,9 +60,17 @@ async def send_file(host: str, port: int, file_path: str, configuration: QuicCon
                     writer.write(chunk)
                     await writer.drain()
             logging.info(f"File {file_path} sent successfully.")
+
         finally:
             writer.close()
-            # await writer.wait_closed() should be used here, but it's not working right now
+            # I don't get why writer stays open after drain.
+            # The connection will never end if it doesn't close, so I'm
+            # forcing the closing after 5 seconds
+            try:
+                await asyncio.wait_for(writer.wait_closed(), timeout=5)
+            
+            except asyncio.TimeoutError:
+                logging.warning("Writer wait_closed timed out. Forcing cleanup.")
             
         protocol.close()
         await protocol.wait_closed()
