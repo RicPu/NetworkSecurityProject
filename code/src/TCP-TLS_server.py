@@ -1,6 +1,9 @@
+import os
 import socket
 import ssl
 import logging
+
+from utils import gen_key_cert
 
 
 logging.basicConfig(level=logging.INFO)
@@ -34,10 +37,34 @@ class TLSServer:
 
     def handle_connection(self, conn: ssl.SSLSocket):
         try:
-            data = conn.recv(1024)
-            if data:
-                self.logger.info(f"Received: {data.decode()}")
-                conn.sendall(b"Hello, TLS client!")
+            metadata = conn.recv(4096).decode().strip()
+            if not metadata:
+                self.logger.warning("No metadata received.")
+                return
+
+            filename, filesize = metadata.split(",")
+            filesize = int(filesize)
+            self.logger.info(f"Receiving file: {filename} ({filesize} bytes)")
+
+            output_path = os.path.join("received_files", filename)
+            os.makedirs("received_files", exist_ok=True)
+
+            with open(output_path, "wb") as file:
+                remaining = filesize
+                while remaining > 0:
+                    chunk = conn.recv(min(4096, remaining))
+                    if not chunk:
+                        break
+                    file.write(chunk)
+                    remaining -= len(chunk)
+            
+            if remaining == 0:
+                self.logger.info(f"File {filename} received successfully.")
+            else:
+                self.logger.warning(f"File transfer incomplete: {remaining} bytes missing.")
+            
+            conn.sendall(b"File received successfully.")
+        
         except Exception as e:
             self.logger.error(f"Error while handling connection: {e}")
         finally:
@@ -46,6 +73,7 @@ class TLSServer:
 
 
 if __name__ == '__main__':
+    gen_key_cert()
     server = TLSServer(
         host="127.0.0.1",
         port=8443,

@@ -1,5 +1,6 @@
 import socket
 import ssl
+import os
 import logging
 
 
@@ -20,18 +21,36 @@ class TLSClient:
 
         self.context.check_hostname = False
         self.context.verify_mode = ssl.CERT_NONE
+    
+    def send_file(self, ssock: ssl.SSLSocket, file_path: str):
+        if not os.path.exists(file_path):
+            self.logger.error(f"File not found: {file_path}")
+            return
+        
+        file_name = os.path.basename(file_path)
+        file_size = os.path.getsize(file_path)
 
-    def connect(self):
+        try:
+            ssock.sendall(f"{file_name}, {file_size}\n".encode())
+
+            with open(file_path, "rb") as file:
+                while chunk := file.read(4096):
+                    ssock.sendall(chunk)
+            self.logger.info(f"File {file_name} sent successfully.")
+        except Exception as e:
+            self.logger.error(f"Error sending file: {e}")
+
+    def connect(self, file_path):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             with self.context.wrap_socket(sock, server_hostname=self.host) as ssock:
                 try:
                     ssock.connect((self.host, self.port))
                     self.logger.info(f"Connected to {self.host}:{self.port}")
 
-                    ssock.sendall(b"Hello, TLS server!")
+                    self.send_file(ssock, file_path)
 
-                    data = ssock.recv(1024)
-                    self.logger.info(f"Received: {data.decode()}")
+                except ssl.SSL_ERROR_SSL as ssl_err:
+                    self.logger.error(f"SSL error: {ssl_err}")
                 except Exception as e:
                     self.logger.error(f"Error during communication: {e}")
                 finally:
@@ -43,4 +62,4 @@ if __name__ == '__main__':
         port=8443,
         certfile='code/assets/certificate.pem'
     )
-    client.connect()
+    client.connect("code/assets/Summer_1.jpg")
