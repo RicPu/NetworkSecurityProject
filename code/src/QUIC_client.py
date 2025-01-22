@@ -8,6 +8,8 @@ from aioquic.quic.configuration import QuicConfiguration
 from aioquic.asyncio.protocol import QuicConnectionProtocol
 from aioquic.quic.events import QuicEvent, HandshakeCompleted, StreamDataReceived
 
+from utils import save_file, parse_metadata
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -26,7 +28,7 @@ class FileTransferClient(QuicConnectionProtocol):
             data = event.data
 
             if stream_id not in self.stream_data:
-                metadata, remaining_data = self.parse_metadata(data)
+                metadata, remaining_data = parse_metadata(data)
 
                 file_name = metadata.get("file_name")
                 file_size = metadata.get("file_size")
@@ -41,54 +43,64 @@ class FileTransferClient(QuicConnectionProtocol):
 
             if event.end_stream:
                 file_name = self.stream_data[stream_id]["file_name"]
-                self.save_file(file_name, self.stream_data[stream_id]["data"])
+                save_file(file_name, self.stream_data[stream_id]["data"])
                 self.stream_data.pop(stream_id, None)
-
-    def parse_metadata(self, data: bytes):
-        try:
-            metadata, remaining_data = data.split(b"\n", 1)
-            return json.loads(metadata.decode()), remaining_data
-
-        except Exception as e:
-            self.logger.error(f"Error parsing metadata: {e}")
-            return None, data
-
-    def save_file(self, file_name: str, file_data: bytes):
-        try:
-            save_path = os.path.join("code/assets/client_directory", file_name)
-            os.makedirs(os.path.dirname(save_path), exist_ok=True)
-
-            with open(save_path, "wb") as file:
-                file.write(file_data)
-            self.logger.info(f"File saved as '{save_path}'")
-
-        except Exception as e:
-            self.logger.error(f"Error saving file '{file_name}': {e}")
 
 
 async def send_request(client: QuicConnectionProtocol, request: bytes):
-    stream_id = client._quic.get_next_available_stream_id(is_unidirectional=True)
-    reader, writer = await client.create_stream(stream_id)
+    reader, writer = await client.create_stream()
 
     try:
         writer.write(request)
         await writer.drain()
-        writer.write_eof()
-        await writer.drain()
+        client.transmit()
     finally:
         writer.close()
         await writer.wait_closed()
 
 
-async def main(host: str, port: int, configuration: QuicConfiguration, action: str):
+async def send_file(client: QuicConnectionProtocol, file_name: str):
+    file_path = os.path.join("code/assets/client_directory", file_name)
+
+    if os.path.exists(file_path) and os.path.isfile(file_path):
+        reader, writer = await client.create_stream()
+
+        file_size = os.path.getsize(file_path)
+        metadata = json.dumps(
+            {
+                "file_name": file_name,
+                "file_size": file_size
+            }
+        ).encode()
+
+        try:
+            writer.write(metadata + b'\n')
+            client.transmit()
+
+            with open(file_path, "rb") as file:
+                while chunk := file.read(4096):
+                    writer.write(chunk)
+                    await writer.drain()
+
+            writer.write_eof()
+            await writer.drain()
+
+        finally:
+            writer.close()
+            await writer.wait_closed()
+
+
+async def main(
+    host: str, port: int, configuration: QuicConfiguration, action: str
+):
     async with connect(
         host, port, configuration=configuration, create_protocol=FileTransferClient
     ) as client:
         await client.wait_connected()
 
-        request = json.dumps(
-            {"action": "request_file", "file_name": "Summer_1.jpg"}
-        ).encode()
+        request = json.dumps({"action": action, "file_name": "Summer_1.jpg"}).encode()
+
+        #await send_file(client, "Winter_1.jpg")
         await send_request(client, request)
 
 
@@ -99,4 +111,4 @@ if __name__ == "__main__":
     configuration = QuicConfiguration(is_client=True)
     configuration.verify_mode = ssl.CERT_NONE
 
-    asyncio.run(main(host, port, configuration, None))
+    asyncio.run(main(host, port, configuration, "request_file"))
