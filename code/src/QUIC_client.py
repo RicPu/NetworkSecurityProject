@@ -8,7 +8,7 @@ from aioquic.quic.configuration import QuicConfiguration
 from aioquic.asyncio.protocol import QuicConnectionProtocol
 from aioquic.quic.events import QuicEvent, HandshakeCompleted, StreamDataReceived
 
-from utils import save_file, parse_metadata
+from utils import parse_metadata, save_file
 
 
 logging.basicConfig(level=logging.INFO)
@@ -19,7 +19,7 @@ class FileTransferClient(QuicConnectionProtocol):
         super().__init__(*args, **kwargs)
         self.stream_data = {}
         self.logger = logging.getLogger(__name__)
-
+    
     def quic_event_received(self, event: QuicEvent):
         if isinstance(event, HandshakeCompleted):
             self.logger.info("Handshake completed!")
@@ -36,58 +36,61 @@ class FileTransferClient(QuicConnectionProtocol):
                 self.stream_data[stream_id] = {
                     "data": bytearray(remaining_data),
                     "file_name": file_name,
-                    "file_size": file_size,
+                    "file_size": file_size
                 }
             else:
                 self.stream_data[stream_id]["data"].extend(data)
-
+            
             if event.end_stream:
                 file_name = self.stream_data[stream_id]["file_name"]
-                save_file(file_name, self.stream_data[stream_id]["data"])
-                self.stream_data.pop(stream_id, None)
+                save_file(file_name, self.stream_data[stream_id]["data"], is_client=True)
+                self.stream_data.pop(stream_id)
 
+async def upload_file(client: FileTransferClient, file_path: str):
+    file_name = os.path.basename(file_path)
+    
+    upload_request = json.dumps({
+        "action": "upload_file",
+        "file_name": file_name
+    }).encode()
 
-async def send_request(client: QuicConnectionProtocol, request: bytes):
     reader, writer = await client.create_stream()
-
     try:
-        writer.write(request)
+        writer.write(upload_request)
         await writer.drain()
         client.transmit()
+
+        with open(file_path, "rb") as file:
+            while chunk := file.read(4096):
+                writer.write(chunk)
+                await writer.drain()
+                client.transmit()
+        writer.write_eof()
+        await writer.drain()
+        client.logger.info(f"File {file_name} sent.")
     finally:
         writer.close()
         await writer.wait_closed()
 
 
-async def send_file(client: QuicConnectionProtocol, file_name: str):
-    file_path = os.path.join("code/assets/client_directory", file_name)
+async def download_file(client: FileTransferClient, file_name: str):
+    download_request = json.dumps({
+        "action": "download_file",
+        "file_name": file_name
+    }).encode()
 
-    if os.path.exists(file_path) and os.path.isfile(file_path):
-        reader, writer = await client.create_stream()
+    reader, writer = await client.create_stream()
+    try:
+        writer.write(download_request)
+        await writer.drain()
+        client.transmit()
 
-        file_size = os.path.getsize(file_path)
-        metadata = json.dumps(
-            {
-                "file_name": file_name,
-                "file_size": file_size
-            }
-        ).encode()
-
-        try:
-            writer.write(metadata + b'\n')
-            client.transmit()
-
-            with open(file_path, "rb") as file:
-                while chunk := file.read(4096):
-                    writer.write(chunk)
-                    await writer.drain()
-
-            writer.write_eof()
-            await writer.drain()
-
-        finally:
-            writer.close()
-            await writer.wait_closed()
+        writer.write_eof()
+        await writer.drain()
+        client.transmit()
+    finally:
+        writer.close()
+        await writer.wait_closed()
 
 
 async def main(
@@ -98,11 +101,12 @@ async def main(
     ) as client:
         await client.wait_connected()
 
-        request = json.dumps({"action": action, "file_name": "Summer_1.jpg"}).encode()
-
-        #await send_file(client, "Winter_1.jpg")
-        await send_request(client, request)
-
+        if action == "upload_file":
+            await upload_file(client, file_path="code/assets/client_directory/Winter_1.jpg")
+        elif action == "download_file":
+            await download_file(client, "Summer_1.jpg")
+        else:
+            logging.info("No other actions.")
 
 if __name__ == "__main__":
     host = "localhost"
@@ -111,4 +115,4 @@ if __name__ == "__main__":
     configuration = QuicConfiguration(is_client=True)
     configuration.verify_mode = ssl.CERT_NONE
 
-    asyncio.run(main(host, port, configuration, "request_file"))
+    asyncio.run(main(host, port, configuration, "download_file"))

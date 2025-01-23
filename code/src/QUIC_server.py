@@ -7,7 +7,7 @@ from aioquic.quic.events import QuicEvent, HandshakeCompleted, StreamDataReceive
 from aioquic.quic.configuration import QuicConfiguration
 from aioquic.asyncio.protocol import QuicConnectionProtocol
 
-from utils import gen_key_cert, parse_metadata, save_file
+from utils import gen_key_cert, save_file
 
 
 logging.basicConfig(level=logging.INFO)
@@ -18,6 +18,37 @@ class FileTransferServer(QuicConnectionProtocol):
         super().__init__(*args, **kwargs)
         self.stream_data = {}
         self.logger = logging.getLogger(__name__)
+    
+    async def download_file(self, file_name: str):
+        self.logger.info(f"Client is requesting file: {file_name}")
+        file_path = os.path.join("code/assets/server_directory", file_name)
+
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            reader, writer = await self.create_stream()
+
+            file_size = os.path.getsize(file_path)
+            metadata = json.dumps({
+                "file_name": file_name,
+                "file_size": file_size
+            }).encode()
+
+            try:
+                writer.write(metadata + b'\n')
+                await writer.drain()
+                self.transmit()
+
+                with open(file_path, "rb") as file:
+                    while chunk := file.read(4096):
+                        writer.write(chunk)
+                        await writer.drain()
+                writer.write_eof()
+                await writer.drain()
+                self.transmit()
+                self.logger.info(f"File {file_name} sent.")
+            finally:
+                writer.close()
+                await writer.wait_closed()
+
 
     def quic_event_received(self, event: QuicEvent):
         if isinstance(event, HandshakeCompleted):
@@ -27,82 +58,40 @@ class FileTransferServer(QuicConnectionProtocol):
             data = event.data
 
             if stream_id not in self.stream_data:
+                self.stream_data[stream_id] = {
+                    "action": None,
+                    "buffer": b"",
+                    "file_name": None
+                }
+            
+            stream_context = self.stream_data[stream_id]
+
+            if stream_context["action"] is None:
                 request = json.loads(data.decode())
-                action = request.get("action")
-                file_name = request.get("file_name")
-                print(action)
 
-                if action == "request_file":
-                    asyncio.create_task(self.send_file(file_name))
-                elif action == "send_file":
-                    asyncio.create_task(self.receive_file(file_name, event))
+                if request.get("action") == "upload_file":
+                    stream_context["action"] = "upload_file"
+                    stream_context["file_name"] = request.get("file_name")
+                    self.logger.info(f"Client wants to upload file: {stream_context['file_name']}")
+
+                elif request.get("action") == "download_file":
+                    stream_context["action"] = "download_file"
+                    stream_context["file_name"] = request.get("file_name")
+                    self.logger.info("Client requested to download a file.")
+                    
                 else:
-                    self.logger.error("Unknown action received from client.")
-
+                    self.logger.error("Unknown request.")
+                    self.stream_data.pop(stream_id)
+                    return
             else:
-                self.stream_data[stream_id]["data"].extend(data)
+                if stream_context["action"] == "upload_file":
+                    stream_context["buffer"] += data
+                    if event.end_stream:
+                        save_file(stream_context["file_name"], stream_context["buffer"], is_client=False)
+                        self.stream_data.pop(stream_id)
 
-            if event.end_stream:
-                self.logger.info("Stream ended.")
-                self.stream_data.pop(stream_id, None)
-
-    async def send_file(self, file_name: str):
-        self.logger.info(f"Client is requesting file: {file_name}")
-        file_path = os.path.join("code/assets/server_directory", file_name)
-
-        if os.path.exists(file_path) and os.path.isfile(file_path):
-            reader, writer = await self.create_stream()
-
-            file_size = os.path.getsize(file_path)
-            metadata = json.dumps(
-                {"file_name": file_name, "file_size": file_size}
-            ).encode()
-
-            try:
-                writer.write(metadata + b"\n")
-                await writer.drain()
-                self.transmit()
-
-                with open(file_path, "rb") as file:
-                    while chunk := file.read(4096):
-                        writer.write(chunk)
-                        await writer.drain()
-
-                writer.write_eof()
-                await writer.drain()
-                self.transmit()
-                self.logger.info(f"Finished sending file {file_name}")
-
-            finally:
-                self.logger.info("Attempting to close the writer.")
-                writer.close()
-                await (
-                    writer.wait_closed()
-                )  # there's a bug where, for some reason, this hangs indefinitely
-
-    async def receive_file(self, file_name: str, event: StreamDataReceived):
-        self.logger.info(f"Client wants to send the file: {file_name}")
-        stream_id = event.stream_id
-        data = event.data
-
-        if stream_id not in self.stream_data:
-            metadata, remaining_data = parse_metadata(data)
-
-            file_name = metadata.get("file_name")
-            file_size = metadata.get("file_size")
-
-            self.stream_data[stream_id] = {
-                "data": bytearray(remaining_data),
-                "file_name": file_name,
-                "file_size": file_size,
-            }
-        else:
-            self.stream_data[stream_id]["data"].extend(data)
-
-        if event.end_stream:
-            file_name = self.stream_data[stream_id]["file_name"]
-            save_file(file_name, self.stream_data[stream_id]["data"], is_client=False)
-            self.stream_data.pop(stream_id, None)
+                elif stream_context["action"] == "download_file":
+                    asyncio.create_task(self.download_file(stream_context["file_name"]))
 
 
 async def main(host: str, port: int, configuration: QuicConfiguration):
