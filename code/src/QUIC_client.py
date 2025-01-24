@@ -46,6 +46,7 @@ class FileTransferClient(QuicConnectionProtocol):
                 save_file(file_name, self.stream_data[stream_id]["data"], is_client=True)
                 self.stream_data.pop(stream_id)
 
+
 async def upload_file(client: FileTransferClient, file_path: str):
     file_name = os.path.basename(file_path)
     
@@ -107,6 +108,9 @@ async def main(
             await download_file(client, "Summer_1.jpg")
         else:
             logging.info("No other actions.")
+        
+        client.close()
+
 
 if __name__ == "__main__":
     host = "localhost"
