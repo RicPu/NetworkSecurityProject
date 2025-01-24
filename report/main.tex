@@ -1,4 +1,4 @@
-\documentclass{article}
+\documentclass[12pt, a4paper]{article}
 
 \usepackage{booktabs}
 \usepackage[english]{babel}
@@ -7,16 +7,29 @@
 \usepackage{tikz}
 \usepackage{graphicx}
 \usepackage[hidelinks]{hyperref}
-\usepackage[a4paper, margin=1in]{geometry}
+\usepackage[margin=1in]{geometry}
 
 \MakeOuterQuote{"}
 
 
 \begin{document}
 
-\tableofcontents
+\begin{titlepage}
+	\centering
+	
+	\vspace*{1cm}
+	
+	\textbf{Performance Comparison of QUIC and TCL+TLS Protocols \\ in a File Transfer Application}
+\end{titlepage}
+
+% \tableofcontents
 
 % Per includere una sezione:
 % \include{sections/nome_sezione}
+
+\include{sections/intro}
+% \include{sections/related_work}
+% \include{sections/methodology}
+% \include{sections/results}
 
 \end{document}
