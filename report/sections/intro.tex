@@ -1,10 +1,34 @@
 \section{Introduction}
 
 \subsection{Background}
+Secure communication is a cornerstone of the modern Internet, enabling privacy, authentication, and data integrity. Two key protocols, Transport Layer Security (TLS) and QUIC, play vital roles in this domain.
 
-% Transmission Control Protocol (TCP)
-The Transmission Control Protocol (TCP) is a core component of the Internet protocol suite, complementing the Internet Protocol (IP) in its original implementation. TCP ensures reliable, ordered, and error-checked delivery of a byte stream between applications communicating over an IP network. As a connection-oriented protocol, TCP requires the sender and receiver to establish a connection through a three-way handshake before communication begins. The server must be actively listening for client requests. While features like handshaking, retransmission, and error detection enhance reliability, they also increase latency. Applications prioritizing speed over reliability often use the connectionless User Datagram Protocol (UDP) instead. Operating at the transport layer, TCP provides host-to-host connectivity and abstracts the complexities of data transmission, such as IP fragmentation and maximum transmission unit considerations. It handles all handshake and transmission processes, presenting applications with a simplified network connection via a socket interface.
+% TLS
+\paragraph{Transport Layer Security (TLS).} TLS is a cryptographic protocol designed to provide secure communication over the Internet by encrypting data and authenticating the identity of communicating parties. It operates on top of the Transport Control Protocol (TCP) and is used in a wide range of applications, including web browsing, email, messaging, and file transfers.
 
-\subsection{Objectives}
+There are three main components to what the TLS protocol accomplishes:
 
-\subsection{Scope}
+\begin{itemize}
+\item Encryption: ensures the confidentiality of data exchanged between a client and a server.
+
+\item Authentication: verifies the identity of the server, and optionally the client, through digital certificates.
+
+\item Integrity: protects against data tampering by using message authentication codes (MACs).
+\end{itemize}
+
+While TLS has undergone significant improvements since its inception (from SSL to TLS 1.3), its reliance on TCP introduces performance limitations, such as latency caused by the sequential handshakes of both protocols.
+
+% QUIC
+\paragraph{QUIC.} QUIC (Quick UDP Internet Connections) is a modern transport protocol developed by Google and later standardized by the IETF. Unlike TLS, which operates as an independent protocol layered on top of TCP, QUIC integrates both the transport and security layers directly into its design, building on User Datagram Protocol (UDP) as its foundation. QUIC is the default transport protocol for HTTP/3, the latest version of the HTTP protocol.
+
+The key features of QUIC include:
+
+\begin{itemize}
+\item Built-in Security: incorporates TLS 1.3 for encryption and authentication, eliminating the need for a separate handshake layer.
+
+\item Reduced Latency: combines the transport and security handshake into a single exchange, significantly reducing connection setup time.
+
+\item Multiplexing Streams: unlike TCP, QUIC allows multiple data streams within a single connection, avoiding head-of-line blocking when packet loss occurs.
+\end{itemize}
+
+Both TLS and QUIC aim to ensure secure communication, but they achieve this in fundamentally different ways. TLS focuses solely on encryption and authentication, relying on an underlying transport protocol like TCP. In contrast, QUIC integrates security and transport into a single protocol, offering not only robust encryption but also performance optimizations. The differences between these approaches have profound implications for latency, throughput and resilience, which will be explored in the later sections.

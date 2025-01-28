@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.26 (MiKTeX 24.4) (preloaded format=pdflatex 2025.1.23)  25 JAN 2025 00:11
+This is pdfTeX, Version 3.141592653-2.6-1.40.26 (MiKTeX 24.4) (preloaded format=pdflatex 2025.1.23)  27 JAN 2025 20:05
 entering extended mode
  \write18 enabled.
  %&-line parsing enabled.
@@ -961,23 +961,39 @@ l.30 \include{sections/intro}
 LaTeX2e <2024-11-01> patch level 1
 L3 programming layer <2024-12-25>
  ***********
-Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: AF6724EE4DBAB8B2097B81652C8F1EBC;399.
+
+
+Package rerunfilecheck Warning: File `main.out' has changed.
+(rerunfilecheck)                Rerun to get outlines right
+(rerunfilecheck)                or use package `bookmark'.
+
+Package rerunfilecheck Info: Checksums for `main.out':
+(rerunfilecheck)             Before: B48690F5D29C121E75CC9C6BD770918A;529
+(rerunfilecheck)             After:  74A477239D6D71B13F1A798BDB4B60AF;210.
  ) 
 Here is how much of TeX's memory you used:
- 28220 strings out of 473536
- 575572 string characters out of 5714956
- 1001091 words of memory out of 5000000
- 51002 multiletter control sequences out of 15000+600000
- 560653 words of font info for 42 fonts, out of 8000000 for 9000
+ 28227 strings out of 473536
+ 575706 string characters out of 5714956
+ 1006101 words of memory out of 5000000
+ 51006 multiletter control sequences out of 15000+600000
+ 560990 words of font info for 43 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 116i,5n,121p,1136b,544s stack positions out of 10000i,1000n,20000p,200000b,200000s
-<C:/Users/ricpu/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/
-cmbx12.pfb><C:/Users/ricpu/AppData/Local/Programs/MiKTeX/fonts/type1/public/ams
-fonts/cm/cmr12.pfb>
-Output written on main.pdf (2 pages, 46320 bytes).
+ 116i,5n,121p,574b,544s stack positions out of 10000i,1000n,20000p,200000b,200000s
+
+pdfTeX warning (dest): name{subsubsection.1.1.2} has been referenced but does n
+ot exist, replaced by a fixed one
+
+
+pdfTeX warning (dest): name{subsubsection.1.1.1} has been referenced but does n
+ot exist, replaced by a fixed one
+
+ <C:\Users\ricpu\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\tcrm12
+00.pk><C:/Users/ricpu/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts
+/cm/cmbx12.pfb><C:/Users/ricpu/AppData/Local/Programs/MiKTeX/fonts/type1/public
+/amsfonts/cm/cmr12.pfb>
+Output written on main.pdf (2 pages, 51122 bytes).
 PDF statistics:
- 80 PDF objects out of 1000 (max. 8388607)
- 6 named destinations out of 1000 (max. 500000)
+ 89 PDF objects out of 1000 (max. 8388607)
+ 8 named destinations out of 1000 (max. 500000)
  189 words of extra memory for PDF output out of 10000 (max. 10000000)
 
