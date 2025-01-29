@@ -1,122 +1,100 @@
 import os
 import ssl
-import json
 import asyncio
 import logging
 from aioquic.asyncio.client import connect
+from aioquic.asyncio import QuicConnectionProtocol
 from aioquic.quic.configuration import QuicConfiguration
-from aioquic.asyncio.protocol import QuicConnectionProtocol
-from aioquic.quic.events import QuicEvent, HandshakeCompleted, StreamDataReceived
-
-from utils import parse_metadata, save_file
 
 
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("quic-client")
 
 
-class FileTransferClient(QuicConnectionProtocol):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.stream_data = {}
-        self.logger = logging.getLogger(__name__)
-    
-    def quic_event_received(self, event: QuicEvent):
-        if isinstance(event, HandshakeCompleted):
-            self.logger.info("Handshake completed!")
-        if isinstance(event, StreamDataReceived):
-            stream_id = event.stream_id
-            data = event.data
+class FileTransferClientProtocol(QuicConnectionProtocol):
+    async def upload(self, local_path: str):
+        """
+        Upload a file to the server.
+        """
+        file_name = os.path.basename(local_path)
+        logger.info(f"Starting upload of {local_path}")
+        try:
+            reader, writer = await self.create_stream()
 
-            if stream_id not in self.stream_data:
-                metadata, remaining_data = parse_metadata(data)
+            command = f"upload {file_name}\n"
+            writer.write(command.encode())
+            logger.debug(f"Sent upload command: {command.strip()}")
 
-                file_name = metadata.get("file_name")
-                file_size = metadata.get("file_size")
+            with open(local_path, "rb") as file:
+                content = file.read()
+                writer.write(content)
+                logger.info(f"Sent {len(content)} bytes for {file_name}")
 
-                self.stream_data[stream_id] = {
-                    "data": bytearray(remaining_data),
-                    "file_name": file_name,
-                    "file_size": file_size
-                }
+            await writer.drain()
+            writer.write_eof()
+
+            response = await reader.read()
+            logger.error(f"Server response: {response.decode()}")
+
+        except Exception as e:
+            logger.error(f"Upload failed: {str(e)}")
+            raise
+
+    async def download(self, file_name: str, local_path: str):
+        """
+        Download a file from the server.
+        """
+        logger.info(f"Starting download of {file_name} to {local_path}")
+        try:
+            reader, writer = await self.create_stream()
+
+            command = f"download {file_name}\n"
+            writer.write(command.encode())
+            logger.debug(f"Sent download command: {command.strip()}")
+            writer.write_eof()
+
+            data = await reader.read()
+            if data == b"File not found":
+                logger.warning(f"File not found on server: {file_name}")
             else:
-                self.stream_data[stream_id]["data"].extend(data)
-            
-            if event.end_stream:
-                file_name = self.stream_data[stream_id]["file_name"]
-                save_file(file_name, self.stream_data[stream_id]["data"], is_client=True)
-                self.stream_data.pop(stream_id)
+                file_path = os.path.join(local_path, file_name)
+                with open(file_path, "wb") as file:
+                    file.write(data)
+                logger.info(f"Received {len(data)} bytes, saved to {file_path}")
+
+        except Exception as e:
+            logger.error(f"Download failed: {str(e)}")
+            raise
 
 
-async def upload_file(client: FileTransferClient, file_path: str):
-    file_name = os.path.basename(file_path)
-    
-    upload_request = json.dumps({
-        "action": "upload_file",
-        "file_name": file_name
-    }).encode()
-
-    reader, writer = await client.create_stream()
-    try:
-        writer.write(upload_request)
-        await writer.drain()
-        client.transmit()
-
-        with open(file_path, "rb") as file:
-            while chunk := file.read(4096):
-                writer.write(chunk)
-                await writer.drain()
-                client.transmit()
-        writer.write_eof()
-        await writer.drain()
-        client.logger.info(f"File {file_name} sent.")
-    finally:
-        writer.close()
-        await writer.wait_closed()
-
-
-async def download_file(client: FileTransferClient, file_name: str):
-    download_request = json.dumps({
-        "action": "download_file",
-        "file_name": file_name
-    }).encode()
-
-    reader, writer = await client.create_stream()
-    try:
-        writer.write(download_request)
-        await writer.drain()
-        client.transmit()
-
-        writer.write_eof()
-        await writer.drain()
-        client.transmit()
-    finally:
-        writer.close()
-        await writer.wait_closed()
-
-
-async def main(
-    host: str, port: int, configuration: QuicConfiguration, action: str
-):
-    async with connect(
-        host, port, configuration=configuration, create_protocol=FileTransferClient
-    ) as client:
-        await client.wait_connected()
-
-        if action == "upload_file":
-            await upload_file(client, file_path="code/assets/client_directory/Winter_1.jpg")
-        elif action == "download_file":
-            await download_file(client, "Summer_1.jpg")
-        else:
-            logging.info("No other actions.")
-        
-        client.close()
-
-
-if __name__ == "__main__":
-    host = "localhost"
-    port = 4433
-
+async def main():
     configuration = QuicConfiguration(is_client=True)
     configuration.verify_mode = ssl.CERT_NONE
 
-    asyncio.run(main(host, port, configuration, "download_file"))
+    try:
+        logger.info("Connecting to QUIC server at localhost:4433")
+        async with connect(
+            "localhost",
+            4433,
+            configuration=configuration,
+            create_protocol=FileTransferClientProtocol,
+        ) as protocol:
+            await protocol.wait_connected()
+            logger.info("Successfully connected to server")
+
+            # Example upload
+            # await protocol.upload("code/assets/client_directory/Winter_1.jpg")
+
+            # Example download
+            await protocol.download("Summer_1.jpg", "code/assets/client_directory")
+
+            protocol.close()
+            await protocol.wait_closed()
+            logger.info("Connection closed")
+
+    except Exception as e:
+        logger.error(f"Client error: {str(e)}")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

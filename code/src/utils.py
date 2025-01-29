@@ -4,7 +4,6 @@ from cryptography.x509 import CertificateBuilder, Name, NameAttribute, SubjectAl
 from cryptography.x509.oid import NameOID
 from datetime import datetime, timedelta
 import os
-import json
 import hashlib
 import logging
 
@@ -62,30 +61,3 @@ def gen_key_cert(save_path="code/assets"):
     private_key = _generate_private_key(save_path)
     _create_self_signed_certificate(private_key, save_path)
     logging.info("Certificate and private key generated!")
-
-
-def save_file(file_name: str, file_data: bytes, is_client: bool = True):
-    try:
-        if is_client:
-            save_path = os.path.join("code/assets/client_directory", file_name)
-        else:
-            save_path = os.path.join("code/assets/server_directory", file_name)
-
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-
-        with open(save_path, "wb") as file:
-            file.write(file_data)
-
-        logging.info(f"File saved as '{save_path}'")
-    except Exception as e:
-        logging.error(f"Error saving file '{file_name}': {e}")
-
-
-def parse_metadata(data: bytes):
-    try:
-        metadata, remaining_data = data.split(b"\n", 1)
-        return json.loads(metadata.decode()), remaining_data
-
-    except Exception as e:
-        logging.error(f"Error parsing metadata: {e}")
-        return None, data

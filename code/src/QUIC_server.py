@@ -1,116 +1,113 @@
 import os
-import json
-import logging
 import asyncio
+import logging
 from aioquic.asyncio.server import serve
-from aioquic.quic.events import QuicEvent, HandshakeCompleted, StreamDataReceived
-from aioquic.quic.configuration import QuicConfiguration
 from aioquic.asyncio.protocol import QuicConnectionProtocol
+from aioquic.quic.configuration import QuicConfiguration
+from aioquic.quic.events import QuicEvent, StreamDataReceived
 
-from utils import gen_key_cert, save_file
+from utils import gen_key_cert
 
 
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("quic-server")
 
 
-class FileTransferServer(QuicConnectionProtocol):
+class FileTransferServerProtocol(QuicConnectionProtocol):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.stream_data = {}
-        self.logger = logging.getLogger(__name__)
-    
-    async def download_file(self, file_name: str):
-        self.logger.info(f"Client is requesting file: {file_name}")
-        file_path = os.path.join("code/assets/server_directory", file_name)
-
-        if os.path.exists(file_path) and os.path.isfile(file_path):
-            reader, writer = await self.create_stream()
-
-            file_size = os.path.getsize(file_path)
-            metadata = json.dumps({
-                "file_name": file_name,
-                "file_size": file_size
-            }).encode()
-
-            try:
-                writer.write(metadata + b'\n')
-                await writer.drain()
-                self.transmit()
-
-                with open(file_path, "rb") as file:
-                    while chunk := file.read(4096):
-                        writer.write(chunk)
-                        await writer.drain()
-                writer.write_eof()
-                await writer.drain()
-                self.transmit()
-                self.logger.info(f"File {file_name} sent.")
-            finally:
-                writer.close()
-                await writer.wait_closed()
-
+        self.stream_handlers = {}
+        logger.info("New client connection established")
 
     def quic_event_received(self, event: QuicEvent):
-        if isinstance(event, HandshakeCompleted):
-            self.logger.info("Handshake completed!")
-        elif isinstance(event, StreamDataReceived):
-            stream_id = event.stream_id
-            data = event.data
-
-            if stream_id not in self.stream_data:
-                self.stream_data[stream_id] = {
-                    "action": None,
-                    "buffer": b"",
-                    "file_name": None
-                }
+        if isinstance(event, StreamDataReceived):
+            logger.debug(
+                f"Received data on stream {event.stream_id} ({len(event.data)} bytes)"
+            )
+            if event.stream_id not in self.stream_handlers:
+                logger.info(f"Creating new handler for stream {event.stream_id}")
+                reader, writer = self._create_stream(event.stream_id)
+                handler = asyncio.create_task(
+                    self.handle_stream(reader, writer, event.stream_id)
+                )
+                self.stream_handlers[event.stream_id] = handler
+            self._stream_readers[event.stream_id].feed_data(event.data)
             
-            stream_context = self.stream_data[stream_id]
+            if event.end_stream:
+                logger.debug(f"End of stream {event.stream_id}")
+                self._stream_readers[event.stream_id].feed_eof()
 
-            if stream_context["action"] is None:
-                request = json.loads(data.decode())
+    async def handle_stream(
+        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter, stream_id: int
+    ):
+        """
+        Handle file transfer stream.
+        """
+        try:
+            logger.info(f"Processing stream {stream_id}")
+            command = await reader.readuntil(b"\n")
+            cmd, _, filename = command.decode().strip().partition(" ")
+            logger.info(f"Received command: {cmd.upper()} {filename}")
 
-                if request.get("action") == "upload_file":
-                    stream_context["action"] = "upload_file"
-                    stream_context["file_name"] = request.get("file_name")
-                    self.logger.info(f"Client wants to upload file: {stream_context['file_name']}")
+            if cmd == "upload":
+                logger.info(f"Starting upload to {filename}")
+                content = await reader.read()
+                
+                file_path = os.path.join("code/assets/server_directory", filename)
+                with open(file_path, "wb") as file:
+                    file.write(content)
 
-                elif request.get("action") == "download_file":
-                    stream_context["action"] = "download_file"
-                    stream_context["file_name"] = request.get("file_name")
-                    self.logger.info("Client requested to download a file.")
-                    
-                else:
-                    self.logger.error("Unknown request.")
-                    self.stream_data.pop(stream_id)
-                    return
-            else:
-                if stream_context["action"] == "upload_file":
-                    stream_context["buffer"] += data
-                    if event.end_stream:
-                        save_file(stream_context["file_name"], stream_context["buffer"], is_client=False)
-                        self.stream_data.pop(stream_id)
+                logger.info(f"File {filename} saved ({len(content)} bytes)")
+                writer.write(b"File uploaded successfully")
 
-                elif stream_context["action"] == "download_file":
-                    asyncio.create_task(self.download_file(stream_context["file_name"]))
+            elif cmd == "download":
+                logger.info(f"Processing download request for {filename}")
+                try:
+                    file_path = os.path.join("code/assets/server_directory", filename)
+                    with open(file_path, "rb") as file:
+                        content = file.read()
+                        writer.write(content)
+                        logger.info(f"Sent {len(content)} bytes for {filename}")
+
+                except FileNotFoundError:
+                    logger.warning(f"File not found: {filename}")
+                    writer.write(b"File not found")
+
+            await writer.drain()
+            logger.info(f"Completed processing stream {stream_id}")
+
+        except Exception as e:
+            logger.error(f"Error handling stream {stream_id}: {str(e)}")
+        finally:
+            writer.close()
+            del self.stream_handlers[stream_id]
+            logger.debug(f"Closed stream {stream_id}")
 
 
-async def main(host: str, port: int, configuration: QuicConfiguration):
+async def main():
+    configuration = QuicConfiguration(is_client=False)
+    try:
+        configuration.load_cert_chain(
+            certfile="code/assets/certificate.pem",
+            keyfile="code/assets/private_key.pem",
+        )
+        logger.info("SSL certificates loaded successfully")
+    except Exception as e:
+        logger.error(f"Failed to load certificates: {str(e)}")
+        return
+
+    logger.info("Starting QUIC server on [::]:4433")
     await serve(
-        host, port, configuration=configuration, create_protocol=FileTransferServer
+        "::",
+        4433,
+        configuration=configuration,
+        create_protocol=FileTransferServerProtocol,
     )
+    logger.info("Server is ready to accept connections")
 
-    logging.info("Server running...")
     await asyncio.Future()
 
 
 if __name__ == "__main__":
-    host = "::"
-    port = 4433
     gen_key_cert()
-
-    configuration = QuicConfiguration(is_client=False)
-    configuration.load_cert_chain(
-        certfile="code/assets/certificate.pem", keyfile="code/assets/private_key.pem"
-    )
-
-    asyncio.run(main(host, port, configuration))
+    asyncio.run(main())
