@@ -1,15 +1,20 @@
-\documentclass[12pt, a4paper]{article}
+\documentclass[11pt, a4paper]{article}
 
-\usepackage{booktabs}
-\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[backend=biber, sorting=none]{biblatex}
+\usepackage[hidelinks, linktoc=all]{hyperref}
 \usepackage[italian=quotes]{csquotes}
-\usepackage[most]{tcolorbox}
-\usepackage{tikz}
+\usepackage[english]{babel}
+\usepackage{booktabs}
 \usepackage{graphicx}
-\usepackage[hidelinks]{hyperref}
+\usepackage{tikz}
 \usepackage[margin=1in]{geometry}
+\usepackage{mathptmx}
+\usepackage[english, capitalise]{cleveref}
 
 \MakeOuterQuote{"}
+
+\addbibresource{bibliography.bib}
 
 
 \begin{document}
@@ -28,8 +33,9 @@
 % \include{sections/nome_sezione}
 
 \include{sections/intro}
-% \include{sections/related_work}
+\include{sections/background}
 % \include{sections/methodology}
 % \include{sections/results}
+\printbibliography
 
 \end{document}

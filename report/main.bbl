@@ -1,0 +1,209 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.3 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated by
+% biber as required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+
+\refsection{0}
+  \datalist[entry]{none/global//global/global/global}
+    \entry{postel1981rfc0793}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=02b8dba2b9241ee3cbe59775cce0328d}{%
+           family={Postel},
+           familyi={P\bibinitperiod},
+           given={Jon},
+           giveni={J\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {RFC Editor}%
+      }
+      \strng{namehash}{02b8dba2b9241ee3cbe59775cce0328d}
+      \strng{fullhash}{02b8dba2b9241ee3cbe59775cce0328d}
+      \strng{fullhashraw}{02b8dba2b9241ee3cbe59775cce0328d}
+      \strng{bibnamehash}{02b8dba2b9241ee3cbe59775cce0328d}
+      \strng{authorbibnamehash}{02b8dba2b9241ee3cbe59775cce0328d}
+      \strng{authornamehash}{02b8dba2b9241ee3cbe59775cce0328d}
+      \strng{authorfullhash}{02b8dba2b9241ee3cbe59775cce0328d}
+      \strng{authorfullhashraw}{02b8dba2b9241ee3cbe59775cce0328d}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Rfc0793: Transmission control protocol}
+      \field{year}{1981}
+    \endentry
+    \entry{allman2009tcp}{report}{}{}
+      \name{author}{3}{}{%
+        {{hash=16106a5714a6a080fe22adcde1f7a047}{%
+           family={Allman},
+           familyi={A\bibinitperiod},
+           given={Mark},
+           giveni={M\bibinitperiod}}}%
+        {{hash=64469f291d02ccaef81afd5cc785044f}{%
+           family={Paxson},
+           familyi={P\bibinitperiod},
+           given={Vern},
+           giveni={V\bibinitperiod}}}%
+        {{hash=f636a8343e73bcb3af62b65bc530137c}{%
+           family={Blanton},
+           familyi={B\bibinitperiod},
+           given={Ethan},
+           giveni={E\bibinitperiod}}}%
+      }
+      \strng{namehash}{b47fd88408f17af02667ea049c582aab}
+      \strng{fullhash}{b47fd88408f17af02667ea049c582aab}
+      \strng{fullhashraw}{b47fd88408f17af02667ea049c582aab}
+      \strng{bibnamehash}{b47fd88408f17af02667ea049c582aab}
+      \strng{authorbibnamehash}{b47fd88408f17af02667ea049c582aab}
+      \strng{authornamehash}{b47fd88408f17af02667ea049c582aab}
+      \strng{authorfullhash}{b47fd88408f17af02667ea049c582aab}
+      \strng{authorfullhashraw}{b47fd88408f17af02667ea049c582aab}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{TCP congestion control}
+      \field{type}{techreport}
+      \field{year}{2009}
+    \endentry
+    \entry{cardwell2016bbr}{article}{}{}
+      \name{author}{5}{}{%
+        {{hash=057724ca9fc8c7b17fa850624808c3e5}{%
+           family={Cardwell},
+           familyi={C\bibinitperiod},
+           given={Neal},
+           giveni={N\bibinitperiod}}}%
+        {{hash=599f0d58fcaf8c51ecb30b8162920904}{%
+           family={Cheng},
+           familyi={C\bibinitperiod},
+           given={Yuchung},
+           giveni={Y\bibinitperiod}}}%
+        {{hash=24aba1ac5e54adfd53fe7d5f34e8f38b}{%
+           family={Gunn},
+           familyi={G\bibinitperiod},
+           given={C\bibnamedelima Stephen},
+           giveni={C\bibinitperiod\bibinitdelim S\bibinitperiod}}}%
+        {{hash=21f38753a5a398a2991dfef01a090aa5}{%
+           family={Yeganeh},
+           familyi={Y\bibinitperiod},
+           given={Soheil\bibnamedelima Hassas},
+           giveni={S\bibinitperiod\bibinitdelim H\bibinitperiod}}}%
+        {{hash=2191d887ae31ebf1ef43a77dc25834c4}{%
+           family={Jacobson},
+           familyi={J\bibinitperiod},
+           given={Van},
+           giveni={V\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {ACM New York, NY, USA}%
+      }
+      \strng{namehash}{37ad10b692d43818201e73a05d704696}
+      \strng{fullhash}{9880a9308748de9e3e2b314c00043987}
+      \strng{fullhashraw}{9880a9308748de9e3e2b314c00043987}
+      \strng{bibnamehash}{37ad10b692d43818201e73a05d704696}
+      \strng{authorbibnamehash}{37ad10b692d43818201e73a05d704696}
+      \strng{authornamehash}{37ad10b692d43818201e73a05d704696}
+      \strng{authorfullhash}{9880a9308748de9e3e2b314c00043987}
+      \strng{authorfullhashraw}{9880a9308748de9e3e2b314c00043987}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Queue}
+      \field{number}{5}
+      \field{title}{Bbr: Congestion-based congestion control: Measuring bottleneck bandwidth and round-trip propagation time}
+      \field{volume}{14}
+      \field{year}{2016}
+      \field{pages}{20\bibrangedash 53}
+      \range{pages}{34}
+    \endentry
+    \entry{langley2017quic}{inproceedings}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{10}{}{%
+        {{hash=9f7c1bea618246029e139c169baaf321}{%
+           family={Langley},
+           familyi={L\bibinitperiod},
+           given={Adam},
+           giveni={A\bibinitperiod}}}%
+        {{hash=4cbe1a9a3ea3967cdc40344f44d0c869}{%
+           family={Riddoch},
+           familyi={R\bibinitperiod},
+           given={Alistair},
+           giveni={A\bibinitperiod}}}%
+        {{hash=92236dc1e8d3a49d8490904a48d33375}{%
+           family={Wilk},
+           familyi={W\bibinitperiod},
+           given={Alyssa},
+           giveni={A\bibinitperiod}}}%
+        {{hash=78c5e7b13c6b6ccd0a3c76bc458d8a7a}{%
+           family={Vicente},
+           familyi={V\bibinitperiod},
+           given={Antonio},
+           giveni={A\bibinitperiod}}}%
+        {{hash=91a555788c407e4b030f9d808cf7117a}{%
+           family={Krasic},
+           familyi={K\bibinitperiod},
+           given={Charles},
+           giveni={C\bibinitperiod}}}%
+        {{hash=8d3346030389bb4358dd53ef845ff0b1}{%
+           family={Zhang},
+           familyi={Z\bibinitperiod},
+           given={Dan},
+           giveni={D\bibinitperiod}}}%
+        {{hash=bac6a7a5d8c835c2ebe5288a6fe722b4}{%
+           family={Yang},
+           familyi={Y\bibinitperiod},
+           given={Fan},
+           giveni={F\bibinitperiod}}}%
+        {{hash=2cc897bc097b81a6fd958586b28788d1}{%
+           family={Kouranov},
+           familyi={K\bibinitperiod},
+           given={Fedor},
+           giveni={F\bibinitperiod}}}%
+        {{hash=88db0db59cc96680adc2156d714a4cef}{%
+           family={Swett},
+           familyi={S\bibinitperiod},
+           given={Ian},
+           giveni={I\bibinitperiod}}}%
+        {{hash=68857d89a46df851303be12a76ce120a}{%
+           family={Iyengar},
+           familyi={I\bibinitperiod},
+           given={Janardhan},
+           giveni={J\bibinitperiod}}}%
+      }
+      \strng{namehash}{593e5a9a594b87fba38feccea7fc049a}
+      \strng{fullhash}{794da209e1004ce4f970c3c6627b8224}
+      \strng{fullhashraw}{794da209e1004ce4f970c3c6627b8224}
+      \strng{bibnamehash}{593e5a9a594b87fba38feccea7fc049a}
+      \strng{authorbibnamehash}{593e5a9a594b87fba38feccea7fc049a}
+      \strng{authornamehash}{593e5a9a594b87fba38feccea7fc049a}
+      \strng{authorfullhash}{794da209e1004ce4f970c3c6627b8224}
+      \strng{authorfullhashraw}{794da209e1004ce4f970c3c6627b8224}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Proceedings of the conference of the ACM special interest group on data communication}
+      \field{title}{The quic transport protocol: Design and internet-scale deployment}
+      \field{year}{2017}
+      \field{pages}{183\bibrangedash 196}
+      \range{pages}{14}
+    \endentry
+  \enddatalist
+\endrefsection
+\endinput
+
