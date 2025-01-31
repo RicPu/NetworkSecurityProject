@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.26 (MiKTeX 24.4) (preloaded format=pdflatex 2025.1.23)  31 JAN 2025 22:34
+This is pdfTeX, Version 3.141592653-2.6-1.40.26 (MiKTeX 24.4) (preloaded format=pdflatex 2025.1.23)  1 FEB 2025 00:47
 entering extended mode
  \write18 enabled.
  %&-line parsing enabled.
@@ -916,7 +916,8 @@ LaTeX Font Info:    Trying to load font information for OT1+ptm on input line 2
 (C:\Users\ricpu\AppData\Local\Programs\MiKTeX\tex/latex/psnfss\ot1ptm.fd
 File: ot1ptm.fd 2001/06/04 font definitions for OT1/ptm.
 )
-(main.aux (sections/intro.aux) (sections/background.aux))
+(main.aux (sections/intro.aux) (sections/background.aux)
+(sections/methodology.aux))
 \openout1 = `main.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 20.
@@ -1052,7 +1053,7 @@ l.35 \include{sections/intro}
 \openout2 = `sections/background.aux'.
 
  (sections/background.tex
-<images/quic-stack.png, id=40, 563.10374pt x 277.78781pt>
+<images/quic-stack.png, id=52, 563.10374pt x 277.78781pt>
 File: images/quic-stack.png Graphic file (type png)
 <use images/quic-stack.png>
 Package pdftex.def Info: images/quic-stack.png  used on input line 13.
@@ -1066,38 +1067,48 @@ Package pdftex.def Info: images/quic-stack.png  used on input line 13.
  <./images/quic-stack.png>])
 
 [3]
+\openout2 = `sections/methodology.aux'.
+
+ (sections/methodology.tex)
 
 [4
 
 
+
+]
+
+[5
+
+
 ] (main.aux
 Package cleveref Info: loaded `english' language definitions on input line 8.
- (sections/intro.aux) (sections/background.aux))
+ (sections/intro.aux) (sections/background.aux)
+(sections/methodology.aux))
  ***********
 LaTeX2e <2024-11-01> patch level 1
 L3 programming layer <2024-12-25>
  ***********
 Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: 0AD498D1CDEC85A2055EC3D4204CBA69;607.
+(rerunfilecheck)             Checksum: B7CC570BA9ADB6A17FEB2172B0F6855A;1091.
 Package logreq Info: Writing requests to 'main.run.xml'.
 \openout1 = `main.run.xml'.
 
  ) 
 Here is how much of TeX's memory you used:
- 30275 strings out of 473536
- 591187 string characters out of 5714956
- 1403142 words of memory out of 5000000
- 53076 multiletter control sequences out of 15000+600000
+ 30308 strings out of 473536
+ 592379 string characters out of 5714956
+ 1405537 words of memory out of 5000000
+ 53098 multiletter control sequences out of 15000+600000
  568298 words of font info for 49 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 84i,6n,93p,1187b,2041s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 84i,6n,93p,1187b,2043s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/ricpu/AppData/Local/Programs/MiKTeX/fonts/type1/urw/times/utmb8a.pf
 b><C:/Users/ricpu/AppData/Local/Programs/MiKTeX/fonts/type1/urw/times/utmr8a.pf
 b><C:/Users/ricpu/AppData/Local/Programs/MiKTeX/fonts/type1/urw/times/utmri8a.p
 fb>
-Output written on main.pdf (5 pages, 82360 bytes).
+Output written on main.pdf (6 pages, 87961 bytes).
 PDF statistics:
- 83 PDF objects out of 1000 (max. 8388607)
- 16 named destinations out of 1000 (max. 500000)
- 58 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 100 PDF objects out of 1000 (max. 8388607)
+ 20 named destinations out of 1000 (max. 500000)
+ 82 words of extra memory for PDF output out of 10000 (max. 10000000)
 

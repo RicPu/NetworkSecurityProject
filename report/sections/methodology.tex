@@ -1,0 +1,12 @@
+\section{Methodology}
+This section details the implementation of the TCP + TLS and QUIC file transfer clients and servers. Both systems were developed in Python, with careful attention to fairness in testing conditions (e.g., identical file sizes, network emulation settings).
+
+\subsection{Workflow and Functional Dynamics}
+The TCP + TLS implementation relies on synchronous, sequential operations. Clients initiate connections through Python's socket and ssl libraries, wrapping a TCP socket with TLS encryption after the initial handshake. File transfers are structured around JSON-formatted commands (e.g., {"action" : "send\_file"}), with data split into 4 KB chunks for transmission. This approach ensures simplicity but struggles with concurrency, as each connection handles only one stream at a time.
+
+QUIC, powered by the aioquic library, embraces asynchronism. Clients and servers communicate over multiplexed streams within a single QUIC connection, enabling simultaneous uploads and downloads without head-of-line blocking. Commands are sent as plaintext (e.g., upload filename), reducing protocol overhead. The asynchronous model, managed via Python's asyncio, allows QUIC to handle multiple streams concurrently, making it inherently scalable for high-throughput scenarios.
+
+\subsection{Security Foundations}
+Both systems use self-signed RSA certificates, generated automatically, to authenticate servers and establish TLS 1.3 encryption. However, their security workflow differ subtly. In TCP + TLS, the client skips hostname verification for simplicity, accepting any server certificate - a pragmatic choice for testing, but not suitable for production. QUIC enforces certificate validation by default, requiring clients to trust the server's certificate explicitly. This reflects QUIC's design philosophy, where security is mandatory rather than optional.
+
+Encryption parameters are aligned for fairness: AES-GCM secures data in transit, and elliptic-curve Diffie-Hellman ensures forward secrecy. Despite these similarities, QUIC's integration of TLS 1.3 into its handshake eliminates vulnerabilities associated with middleboxes, such as firewalls that mishandle TCP/TLS extensions.
