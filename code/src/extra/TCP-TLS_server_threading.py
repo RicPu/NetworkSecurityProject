@@ -1,8 +1,11 @@
+"""implementing threading to achieve similar speed to QUIC"""
+
 import os
 import socket
 import ssl
 import json
 import logging
+import threading
 import time
 
 from utils import gen_key_cert
@@ -221,16 +224,20 @@ class TLSServer:
 
 
 if __name__ == "__main__":
-    # Generate SSL certificate and private key if they do not exist.
     gen_key_cert()
-    # Create and start the TLS server.
     server = TLSServer(
         host="127.0.0.1",
         port=8443,
         certfile="code/assets/certificate.pem",
         keyfile="code/assets/private_key.pem",
     )
+
+    # causes a huge slowing down (form 300MB/s to 1MB/s), see TCP_test_server
+    server_thread = threading.Thread(target=server.start, daemon=True)
+    server_thread.start()
+
     try:
-        server.start()
+        while True:
+            pass  # Mantiene il programma in esecuzione
     except KeyboardInterrupt:
-        logging.info("Stopping server.")
+        print("\nServer interrupted by user.")

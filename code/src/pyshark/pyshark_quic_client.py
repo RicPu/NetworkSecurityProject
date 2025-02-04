@@ -1,3 +1,5 @@
+"""implementing the pyshark library for packet evaluation"""
+
 import os
 import ssl
 import asyncio
@@ -5,6 +7,8 @@ import logging
 import time
 import statistics
 import json
+import threading
+import pyshark
 from tabulate import tabulate
 
 from aioquic.asyncio.client import connect
@@ -24,10 +28,10 @@ def generate_test_file(file_path: str, size_mb: int):
         file_path (str): The path where the file will be created.
         size_mb (int): The size of the file in megabytes.
     """
-    num_bytes = size_mb * 1024 * 1024  # Calculate the total number of bytes.
-    os.makedirs(os.path.dirname(file_path), exist_ok=True)  # Ensure the directory exists.
+    num_bytes = size_mb * 1024 * 1024
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
     with open(file_path, "wb") as f:
-        f.write(os.urandom(num_bytes))  # Write random bytes to the file.
+        f.write(os.urandom(num_bytes))
     logger.info(f"File generated: {file_path} ({size_mb} MB)")
 
 
@@ -36,14 +40,13 @@ class BenchmarkStats:
     Class to collect and calculate benchmark statistics such as handshake times,
     upload/download times, round-trip times (RTT), and throughputs.
     """
-
     def __init__(self):
-        self.handshake_times = []  # List of handshake durations.
-        self.upload_times = []  # List of upload durations (to be updated with server-side values).
-        self.download_times = []  # List of download durations.
-        self.rtt_samples = []  # List of round-trip time samples.
-        self.upload_throughputs = []  # List of upload throughputs.
-        self.download_throughputs = []  # List of download throughputs.
+        self.handshake_times = []
+        self.upload_times = []
+        self.download_times = []
+        self.rtt_samples = []
+        self.upload_throughputs = []
+        self.download_throughputs = []
 
     def add_handshake_time(self, t):
         """Appends a new handshake time measurement to the list."""
@@ -98,7 +101,7 @@ def print_benchmark_report_separated(benchmark_stats: BenchmarkStats):
     """
     rep = benchmark_stats.report()
 
-    # Prepare latency data for display
+    # Prepare latency data
     latency_data = [
         ("Handshake Time", f"{rep['Handshake Time']:.6f} s" if rep['Handshake Time'] is not None else "N/A"),
         ("RTT", f"{rep['RTT']:.6f} s" if rep['RTT'] is not None else "N/A"),
@@ -106,24 +109,21 @@ def print_benchmark_report_separated(benchmark_stats: BenchmarkStats):
     ]
     latency_table = tabulate(latency_data, headers=["Latency", "Value"], tablefmt="grid")
 
-    # Prepare throughput and transfer data for display
+    # Prepare throughput data
     throughput_data = [
         ("Upload Time", f"{rep['Upload Time']:.6f} s" if rep['Upload Time'] is not None else "N/A"),
-        (
-        "Upload Throughput", f"{rep['Upload Throughput']:.2f} MB/s" if rep['Upload Throughput'] is not None else "N/A"),
+        ("Upload Throughput", f"{rep['Upload Throughput']:.2f} MB/s" if rep['Upload Throughput'] is not None else "N/A"),
         ("Download Time", f"{rep['Download Time']:.6f} s" if rep['Download Time'] is not None else "N/A"),
-        ("Download Throughput",
-         f"{rep['Download Throughput']:.2f} MB/s" if rep['Download Throughput'] is not None else "N/A")
+        ("Download Throughput", f"{rep['Download Throughput']:.2f} MB/s" if rep['Download Throughput'] is not None else "N/A")
     ]
     throughput_table = tabulate(throughput_data, headers=["Throughput", "Value"], tablefmt="grid")
 
-    # Print the two tables with headers
     print("\n" + "=" * 40)
-    print("Latency Metrics")
+    print("Benchmark Report - Latency Metrics")
     print("=" * 40)
     print(latency_table)
     print("\n" + "=" * 40)
-    print("Throughput & Transfer Metrics")
+    print("Benchmark Report - Throughput & Transfer Metrics")
     print("=" * 40)
     print(throughput_table)
 
@@ -153,11 +153,38 @@ def print_detailed_results(benchmark_stats: BenchmarkStats):
         print("\nDetailed Download Results:")
         print(tabulate(download_table, headers=["Iteration", "Download Time", "Download Throughput"], tablefmt="grid"))
 
-    # Detailed ping (RTT) results
+    # Detailed ping results
     if benchmark_stats.rtt_samples:
         ping_table = [(i + 1, f"{t:.6f} s") for i, t in enumerate(benchmark_stats.rtt_samples)]
         print("\nDetailed Ping Times:")
         print(tabulate(ping_table, headers=["Iteration", "Ping Time"], tablefmt="grid"))
+
+
+# --- PyShark Integration ---
+def start_pyshark_capture(interface=r'\Device\NPF_Loopback', display_filter="quic", duration=15):
+    """
+    Start a PyShark live capture on a separate thread.
+    Since QUIC uses UDP (port 4433), filter is set to 'udp.port == 4433'.
+    """
+    import asyncio
+    # Creiamo un nuovo event loop per questo thread e lo impostiamo come corrente.
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    capture = pyshark.LiveCapture(interface=interface, display_filter=display_filter)
+    logger.info("Avvio cattura PyShark...")
+    capture.sniff(timeout=duration, packet_count=100)
+    logger.info(f"Cattura PyShark terminata. {len(capture)} pacchetti catturati:")
+    # Puoi stampare solo i primi N pacchetti se il numero è elevato
+    max_print = 10
+    for i, pkt in enumerate(capture):
+        if i >= max_print:
+            break
+        try:
+            logger.info(f"{pkt.sniff_time} - {pkt.highest_layer}")
+        except Exception as e:
+            logger.error(f"Errore nell'analisi del pacchetto: {e}")
+    capture.close()
 
 
 class FileTransferClientProtocol(QuicConnectionProtocol):
@@ -165,7 +192,6 @@ class FileTransferClientProtocol(QuicConnectionProtocol):
     Custom protocol for file transfer operations using QUIC.
     Inherits from aioquic's QuicConnectionProtocol.
     """
-
     async def create_stream(self):
         """
         Create a new bidirectional stream.
@@ -192,7 +218,6 @@ class FileTransferClientProtocol(QuicConnectionProtocol):
             writer.write(command.encode())
             await writer.drain()
 
-            # Transfer file in chunks
             with open(local_path, "rb") as file:
                 while True:
                     chunk = file.read(4096)
@@ -202,7 +227,6 @@ class FileTransferClientProtocol(QuicConnectionProtocol):
                     await writer.drain()
             writer.write_eof()
 
-            # Receive JSON response from the server
             response = await reader.read()
             response_data = json.loads(response.decode())
             if response_data.get("status") == "success":
@@ -249,7 +273,7 @@ class FileTransferClientProtocol(QuicConnectionProtocol):
                     file.flush()
                     os.fsync(file.fileno())
                 file_size = len(data)
-                throughput = (file_size / (1024 * 1024)) / transfer_time  # Calculate throughput in MB/s
+                throughput = (file_size / (1024 * 1024)) / transfer_time
                 logger.info(f"Download completed for file: {file_name}")
                 logger.info(f"Size: {file_size / (1024 * 1024):.2f} MB")
                 logger.info(f"Download transfer time: {transfer_time:.6f} s")
@@ -292,14 +316,21 @@ async def run_benchmark():
       - Measures handshake time, RTT (ping), upload, and download performance
       - Prints summary and detailed reports of the benchmark metrics.
     """
-    # Generate the test file if it does not exist
+    # Generate test file if not exists
     test_file = "code/assets/client_directory/test_upload.bin"
     if not os.path.exists(test_file):
-        generate_test_file(test_file, 10)  # Create a 10 MB test file
+        generate_test_file(test_file, 10)
 
     benchmark = BenchmarkStats()
     configuration = QuicConfiguration(is_client=True)
     configuration.verify_mode = ssl.CERT_NONE  # Disable certificate verification for testing
+
+    # Start PyShark capture in a separate thread
+    capture_thread = threading.Thread(
+        target=start_pyshark_capture,
+        kwargs={'interface': r'\Device\NPF_Loopback', 'display_filter': "udp.port == 4433", 'duration': 15}
+    )
+    capture_thread.start()
 
     # Measure handshake time
     handshake_start = time.perf_counter()
@@ -315,7 +346,7 @@ async def run_benchmark():
         logger.info(f"Handshake completed in {handshake_time:.6f} seconds")
         benchmark.add_handshake_time(handshake_time)
 
-        # Perform 5 ping tests to measure RTT
+        # Perform 5 ping tests
         for _ in range(5):
             rtt = await protocol.ping()
             if rtt:
@@ -335,16 +366,16 @@ async def run_benchmark():
         protocol.close()
         await protocol.wait_closed()
 
-    # Print summary reports in two separate tables
+    capture_thread.join()
+
+    # Print reports
     print("\n" + "=" * 40)
     print("Benchmark Report - Latency Metrics")
     print("=" * 40)
     latency_report = [
-        ("Handshake Time",
-         f"{statistics.mean(benchmark.handshake_times):.6f} s" if benchmark.handshake_times else "N/A"),
+        ("Handshake Time", f"{statistics.mean(benchmark.handshake_times):.6f} s" if benchmark.handshake_times else "N/A"),
         ("RTT", f"{statistics.mean(benchmark.rtt_samples):.6f} s" if benchmark.rtt_samples else "N/A"),
-        ("RTT Std. Dev.",
-         f"{statistics.stdev(benchmark.rtt_samples):.6f} s" if len(benchmark.rtt_samples) > 1 else "0.000000 s")
+        ("RTT Std. Dev.", f"{statistics.stdev(benchmark.rtt_samples):.6f} s" if len(benchmark.rtt_samples) > 1 else "0.000000 s")
     ]
     print(tabulate(latency_report, headers=["Latency", "Value"], tablefmt="grid"))
 
@@ -353,25 +384,18 @@ async def run_benchmark():
     print("=" * 40)
     throughput_report = [
         ("Upload Time", f"{statistics.mean(benchmark.upload_times):.6f} s" if benchmark.upload_times else "N/A"),
-        ("Upload Throughput",
-         f"{statistics.mean(benchmark.upload_throughputs):.2f} MB/s" if benchmark.upload_throughputs else "N/A"),
+        ("Upload Throughput", f"{statistics.mean(benchmark.upload_throughputs):.2f} MB/s" if benchmark.upload_throughputs else "N/A"),
         ("Download Time", f"{statistics.mean(benchmark.download_times):.6f} s" if benchmark.download_times else "N/A"),
-        ("Download Throughput",
-         f"{statistics.mean(benchmark.download_throughputs):.2f} MB/s" if benchmark.download_throughputs else "N/A")
+        ("Download Throughput", f"{statistics.mean(benchmark.download_throughputs):.2f} MB/s" if benchmark.download_throughputs else "N/A")
     ]
     print(tabulate(throughput_report, headers=["Throughput", "Value"], tablefmt="grid"))
 
-    # Print detailed results for each iteration
     print_detailed_results(benchmark)
 
 
 async def main():
-    """
-    Entry point for running the benchmark.
-    """
     await run_benchmark()
 
 
 if __name__ == "__main__":
-    # Run the main asynchronous routine.
     asyncio.run(main())

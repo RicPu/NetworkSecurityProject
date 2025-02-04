@@ -1,3 +1,7 @@
+"""
+Implementing the pyshark library for packet evaluation
+"""
+
 import os
 import ssl
 import json
@@ -5,6 +9,8 @@ import socket
 import logging
 import time
 import statistics
+import threading
+import pyshark
 from tabulate import tabulate
 
 logging.basicConfig(level=logging.INFO)
@@ -88,10 +94,10 @@ class TLSClient:
         """
         try:
             raw_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.logger.info(f"Attempting to connect to {self.host}:{self.port}...")
+            self.logger.info(f"Connecting to {self.host}:{self.port}...")
             ssock = self.context.wrap_socket(raw_socket, server_hostname=self.host)
             ssock.connect((self.host, self.port))
-            self.logger.info(f"Successfully connected to {self.host}:{self.port}")
+            self.logger.info(f"Connected to {self.host}:{self.port}")
             return ssock
         except ssl.SSLError as ssl_err:
             self.logger.error(f"SSL error during connection: {ssl_err}")
@@ -128,7 +134,6 @@ class TLSClient:
         Returns:
             float: The round-trip time in seconds, or None if the ping fails.
         """
-
         ssock = None
         try:
             ssock = self.connect()
@@ -188,7 +193,7 @@ class TLSClient:
                 self.logger.info(f"Upload completed: {upload_time:.6f} s, Throughput: {throughput:.2f} MB/s")
                 return upload_time, throughput
             else:
-                self.logger.error("Server reported an error during upload.")
+                self.logger.error("Error reported by server during upload.")
                 return None, None
         except Exception as e:
             self.logger.error(f"Upload failed: {e}")
@@ -306,6 +311,7 @@ def generate_test_file(file_path: str, size_mb: int):
     logging.info(f"Test file generated: {file_path} ({size_mb} MB)")
 
 
+# Benchmark report printing functions
 def print_benchmark_report(benchmark_stats: BenchmarkStats):
     """
     Prints a formatted summary report of the benchmark statistics.
@@ -325,11 +331,9 @@ def print_benchmark_report(benchmark_stats: BenchmarkStats):
     ]
     throughput_data = [
         ("Upload Time", f"{rep['Upload Time']:.6f} s" if rep["Upload Time"] is not None else "N/A"),
-        (
-        "Upload Throughput", f"{rep['Upload Throughput']:.2f} MB/s" if rep["Upload Throughput"] is not None else "N/A"),
+        ("Upload Throughput", f"{rep['Upload Throughput']:.2f} MB/s" if rep["Upload Throughput"] is not None else "N/A"),
         ("Download Time", f"{rep['Download Time']:.6f} s" if rep["Download Time"] is not None else "N/A"),
-        ("Download Throughput",
-         f"{rep['Download Throughput']:.2f} MB/s" if rep["Download Throughput"] is not None else "N/A"),
+        ("Download Throughput", f"{rep['Download Throughput']:.2f} MB/s" if rep["Download Throughput"] is not None else "N/A"),
     ]
     print("\n" + "=" * 40)
     print("Benchmark Report - Latency Metrics")
@@ -386,20 +390,51 @@ def print_detailed_ping_times(benchmark_stats: BenchmarkStats):
         print(tabulate(ping_table, headers=["Iteration", "Ping Time"], tablefmt="grid"))
 
 
+def start_pyshark_capture(interface=r'\Device\NPF_Loopback', display_filter='tcp.port == 8443', duration=1):
+    """
+    Starts a live PyShark capture on the specified interface using the given display filter.
+
+    This function creates a new asyncio event loop for this thread, starts a live capture with PyShark,
+    sniffs a fixed number of packets, and logs the capture results.
+
+    Parameters:
+        interface (str): The network interface on which to capture packets.
+        display_filter (str): A filter expression to apply to captured packets.
+        duration (int): The duration for which to run the capture (currently unused; packet_count is fixed).
+    """
+    import asyncio
+    # Create a new event loop for this thread and set it as current.
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    capture = pyshark.LiveCapture(interface=interface, display_filter=display_filter)
+    logging.info("Starting PyShark capture...")
+    capture.sniff(packet_count=100)
+    logging.info(f"PyShark capture finished. {len(capture)} packets captured:")
+    for pkt in capture:
+        try:
+            logging.info(f"{pkt.sniff_time} - {pkt.highest_layer}")
+        except Exception as e:
+            logging.error(f"Error analyzing packet: {e}")
+    capture.close()
+
+
 def run_benchmark():
     """
-    Runs the benchmark tests for the TLS client.
-
-    The function performs the following steps:
-      1. Measures the handshake time by connecting and disconnecting.
+    Runs the TLS client benchmark:
+      1. Measures handshake time by connecting and disconnecting.
       2. Performs 5 ping tests to measure RTT.
-      3. Prepares a test file (if not already present) for upload.
+      3. Prepares a test file for upload.
       4. Performs 3 file upload tests.
       5. Performs 3 file download tests.
       6. Prints the summarized and detailed benchmark reports.
     """
     benchmark = BenchmarkStats()
     client = TLSClient(host="127.0.0.1", port=8443, certfile="code/assets/certificate.pem")
+
+    # Start PyShark capture in a parallel thread to monitor TLS traffic
+    capture_thread = threading.Thread(target=start_pyshark_capture, kwargs={'duration': 15})
+    capture_thread.start()
 
     # Measure handshake time
     try:
@@ -420,7 +455,7 @@ def run_benchmark():
             benchmark.add_rtt(rtt)
         time.sleep(0.1)
 
-    # Prepare file for upload if it does not exist
+    # Prepare test file for upload if it does not exist
     test_upload_file = "code/assets/client_directory/test_upload.bin"
     if not os.path.exists(test_upload_file):
         generate_test_file(test_upload_file, 10)  # 10 MB
@@ -445,6 +480,9 @@ def run_benchmark():
                 benchmark.add_download_time(download_time)
                 benchmark.add_download_throughput(throughput)
         time.sleep(0.2)
+
+    # Wait for the PyShark capture to finish
+    capture_thread.join()
 
     print_benchmark_report(benchmark)
     print_detailed_upload_results(benchmark)
