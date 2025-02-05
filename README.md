@@ -1,7 +1,9 @@
 # NetworkSecurityProject
+[[ Report ]](report/main.pdf) [[ Presentation ]](presentation/Presentation.pptx)
+
 This project implements a comparison between traditional TCP/TLS and QUIC protocols through custom-build client-server applications, specifically designed for file transfer.
 
-## Installation
+## ⚙️ Installation
 To set up the project with a Conda environment, follow these steps:
 
 - Create and activate the Conda environment:
