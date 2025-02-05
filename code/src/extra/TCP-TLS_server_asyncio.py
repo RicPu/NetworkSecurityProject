@@ -11,11 +11,13 @@ import logging
 logging.basicConfig(level=logging.WARNING)  # Reduced log level to minimize overhead
 logger = logging.getLogger("async_tcp_tls")
 
+
 class AsyncTCPTLSServer:
     """
     An asynchronous TCP/TLS server that handles client requests for file transfer
     and ping actions over a secure TLS connection.
     """
+
     def __init__(self, host: str, port: int, certfile: str, keyfile: str):
         """
         Initializes the AsyncTCPTLSServer with the given host, port, and TLS certificate details.
@@ -32,7 +34,9 @@ class AsyncTCPTLSServer:
         self.ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
         self.ssl_context.load_cert_chain(certfile=certfile, keyfile=keyfile)
 
-    async def handle_client(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
+    async def handle_client(
+        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
+    ):
         """
         Handles an incoming client connection, processing its request based on the JSON action provided.
 
@@ -83,7 +87,9 @@ class AsyncTCPTLSServer:
             writer.close()
             await writer.wait_closed()
 
-    async def receive_file(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
+    async def receive_file(
+        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
+    ):
         """
         Receives a file from the client over the secure connection.
 
@@ -124,11 +130,16 @@ class AsyncTCPTLSServer:
             if received == file_size:
                 upload_time = end_time - start_time
                 throughput = (file_size / (1024 * 1024)) / upload_time  # MB/s
-                response = json.dumps({
-                    "status": "success",
-                    "upload_time": upload_time,
-                    "throughput": throughput
-                }) + "\n"
+                response = (
+                    json.dumps(
+                        {
+                            "status": "success",
+                            "upload_time": upload_time,
+                            "throughput": throughput,
+                        }
+                    )
+                    + "\n"
+                )
                 writer.write(response.encode())
                 await writer.drain()
             else:
@@ -146,10 +157,12 @@ class AsyncTCPTLSServer:
         """
         try:
             file_size = os.path.getsize(file_path)
-            metadata = json.dumps({
-                "file_name": os.path.basename(file_path),
-                "file_size": file_size
-            }) + "\n"
+            metadata = (
+                json.dumps(
+                    {"file_name": os.path.basename(file_path), "file_size": file_size}
+                )
+                + "\n"
+            )
             writer.write(metadata.encode())
             await writer.drain()
 
@@ -193,8 +206,11 @@ class AsyncTCPTLSServer:
 
 if __name__ == "__main__":
     from utils import gen_key_cert
+
     gen_key_cert()
-    server = AsyncTCPTLSServer("127.0.0.1", 8443, "code/assets/certificate.pem", "code/assets/private_key.pem")
+    server = AsyncTCPTLSServer(
+        "127.0.0.1", 8443, "code/assets/certificate.pem", "code/assets/private_key.pem"
+    )
     try:
         asyncio.run(server.start())
     except KeyboardInterrupt:

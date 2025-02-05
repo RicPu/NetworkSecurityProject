@@ -8,6 +8,7 @@ import logging
 import time
 import threading
 import pyshark
+from typing import Tuple
 
 # Configure logging for the TLS client
 logging.basicConfig(level=logging.INFO)
@@ -81,7 +82,7 @@ class TLSClient:
             if ssock:
                 self.close_connection(ssock)
 
-    def send_file(self, ssock: ssl.SSLSocket, file_path: str) -> (float, float):
+    def send_file(self, ssock: ssl.SSLSocket, file_path: str) -> Tuple[float, float]:
         """
         Sends a file to a server over a secure SSL/TLS socket connection.
         Returns:
@@ -100,7 +101,9 @@ class TLSClient:
                 self.logger.error("Server not ready for file upload.")
                 return None, None
 
-            metadata = json.dumps({"file_name": file_name, "file_size": file_size}).encode()
+            metadata = json.dumps(
+                {"file_name": file_name, "file_size": file_size}
+            ).encode()
             ssock.sendall(metadata + b"\n")
 
             with open(file_path, "rb") as file:
@@ -112,7 +115,9 @@ class TLSClient:
             if resp.get("status") == "success":
                 upload_time = resp.get("upload_time")
                 throughput = resp.get("throughput")
-                self.logger.info(f"Upload completed: {upload_time:.6f} s, Throughput: {throughput:.2f} MB/s")
+                self.logger.info(
+                    f"Upload completed: {upload_time:.6f} s, Throughput: {throughput:.2f} MB/s"
+                )
                 return upload_time, throughput
             else:
                 self.logger.error("Error reported by server during upload.")
@@ -121,14 +126,18 @@ class TLSClient:
             self.logger.error(f"Upload failed: {e}")
             return None, None
 
-    def request_file(self, ssock: ssl.SSLSocket, file_name: str, save_dir: str) -> (float, float):
+    def request_file(
+        self, ssock: ssl.SSLSocket, file_name: str, save_dir: str
+    ) -> Tuple[float, float]:
         """
         Requests a file from the server and saves it locally.
         Returns:
             tuple: (download_time, throughput) if successful, otherwise (None, None).
         """
         try:
-            request = json.dumps({"action": "request_file", "file_name": file_name}).encode()
+            request = json.dumps(
+                {"action": "request_file", "file_name": file_name}
+            ).encode()
             ssock.sendall(request + b"\n")
             response = ssock.recv(4096).decode().strip()
             response_data = json.loads(response)
@@ -157,14 +166,20 @@ class TLSClient:
             end = time.perf_counter()
             download_time = end - start
             throughput = (expected_size / (1024 * 1024)) / download_time
-            self.logger.info(f"Download completed: {download_time:.6f} s, Throughput: {throughput:.2f} MB/s")
+            self.logger.info(
+                f"Download completed: {download_time:.6f} s, Throughput: {throughput:.2f} MB/s"
+            )
             return download_time, throughput
         except Exception as e:
             self.logger.error(f"Download failed: {e}")
             return None, None
 
-    def handle_communication(self, file_path: str = None, request_type: str = None,
-                             save_dir: str = "code/assets/client_directory"):
+    def handle_communication(
+        self,
+        file_path: str = None,
+        request_type: str = None,
+        save_dir: str = "code/assets/client_directory",
+    ):
         """
         Handles communication with the server for sending or receiving a file.
         Parameters:
@@ -189,7 +204,9 @@ class TLSClient:
             elif request_type == "receive":
                 return self.request_file(ssock, os.path.basename(file_path), save_dir)
             else:
-                self.logger.error("Invalid request type. Use 'send', 'receive', or 'ping'.")
+                self.logger.error(
+                    "Invalid request type. Use 'send', 'receive', or 'ping'."
+                )
                 return None
         except Exception as e:
             self.logger.error(f"Error during communication: {e}")
@@ -214,8 +231,9 @@ def generate_test_file(file_path: str, size_mb: int):
     logging.info(f"Test file generated: {file_path} ({size_mb} MB)")
 
 
-def start_pyshark_capture(interface=r'\Device\NPF_Loopback', display_filter='tcp.port == 8443',
-                          packet_count=4):
+def start_pyshark_capture(
+    interface=r"\Device\NPF_Loopback", display_filter="tcp.port == 8443", packet_count=4
+):
     """
     Starts a live PyShark capture on the specified interface using the given display filter.
 
@@ -229,6 +247,7 @@ def start_pyshark_capture(interface=r'\Device\NPF_Loopback', display_filter='tcp
         packet_count (int): Number of packets to capture.
     """
     import asyncio
+
     # Create a new event loop for this thread and set it as current.
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
@@ -257,7 +276,9 @@ def run_client():
       and after the operation, the capture results (including the total number of packets captured)
       are printed immediately.
     """
-    client = TLSClient(host="127.0.0.1", port=8443, certfile="code/assets/certificate.pem")
+    client = TLSClient(
+        host="127.0.0.1", port=8443, certfile="code/assets/certificate.pem"
+    )
 
     # Handshake test
     try:
@@ -273,7 +294,11 @@ def run_client():
     for _ in range(1):
         ping_thread = threading.Thread(
             target=start_pyshark_capture,
-            kwargs={'interface': r'\Device\NPF_Loopback', 'display_filter': "tcp.port == 8443", 'packet_count': 4}
+            kwargs={
+                "interface": r"\Device\NPF_Loopback",
+                "display_filter": "tcp.port == 8443",
+                "packet_count": 4,
+            },
         )
         ping_thread.start()
         # Wait 1 second to ensure the capture is active.
@@ -291,7 +316,11 @@ def run_client():
     for _ in range(1):
         upload_thread = threading.Thread(
             target=start_pyshark_capture,
-            kwargs={'interface': r'\Device\NPF_Loopback', 'display_filter': "tcp.port == 8443", 'packet_count': 100}
+            kwargs={
+                "interface": r"\Device\NPF_Loopback",
+                "display_filter": "tcp.port == 8443",
+                "packet_count": 100,
+            },
         )
         upload_thread.start()
         time.sleep(1)
@@ -303,11 +332,18 @@ def run_client():
     for _ in range(1):
         download_thread = threading.Thread(
             target=start_pyshark_capture,
-            kwargs={'interface': r'\Device\NPF_Loopback', 'display_filter': "tcp.port == 8443", 'packet_count': 100}
+            kwargs={
+                "interface": r"\Device\NPF_Loopback",
+                "display_filter": "tcp.port == 8443",
+                "packet_count": 100,
+            },
         )
         download_thread.start()
         time.sleep(1)
-        client.handle_communication(file_path="code/assets/client_directory/Summer_1.jpg", request_type="receive")
+        client.handle_communication(
+            file_path="code/assets/client_directory/Summer_1.jpg",
+            request_type="receive",
+        )
         time.sleep(0.2)
         download_thread.join(timeout=100)
 

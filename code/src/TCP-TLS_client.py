@@ -6,6 +6,7 @@ import logging
 import time
 import statistics
 from tabulate import tabulate
+from typing import Tuple
 
 logging.basicConfig(level=logging.INFO)
 
@@ -15,6 +16,7 @@ class BenchmarkStats:
     Class to collect and calculate benchmark statistics such as handshake times,
     upload/download times, round-trip times (RTT), and throughputs.
     """
+
     def __init__(self):
         self.handshake_times = []
         self.upload_times = []
@@ -56,13 +58,25 @@ class BenchmarkStats:
                   RTT (and its standard deviation), upload throughput, and download throughput.
         """
         return {
-            "Handshake Time": statistics.mean(self.handshake_times) if self.handshake_times else None,
-            "Upload Time": statistics.mean(self.upload_times) if self.upload_times else None,
-            "Download Time": statistics.mean(self.download_times) if self.download_times else None,
+            "Handshake Time": statistics.mean(self.handshake_times)
+            if self.handshake_times
+            else None,
+            "Upload Time": statistics.mean(self.upload_times)
+            if self.upload_times
+            else None,
+            "Download Time": statistics.mean(self.download_times)
+            if self.download_times
+            else None,
             "RTT": statistics.mean(self.rtt_samples) if self.rtt_samples else None,
-            "RTT Std. Dev.": statistics.stdev(self.rtt_samples) if len(self.rtt_samples) > 1 else 0.0,
-            "Upload Throughput": statistics.mean(self.upload_throughputs) if self.upload_throughputs else None,
-            "Download Throughput": statistics.mean(self.download_throughputs) if self.download_throughputs else None
+            "RTT Std. Dev.": statistics.stdev(self.rtt_samples)
+            if len(self.rtt_samples) > 1
+            else 0.0,
+            "Upload Throughput": statistics.mean(self.upload_throughputs)
+            if self.upload_throughputs
+            else None,
+            "Download Throughput": statistics.mean(self.download_throughputs)
+            if self.download_throughputs
+            else None,
         }
 
 
@@ -147,7 +161,7 @@ class TLSClient:
             if ssock:
                 self.close_connection(ssock)
 
-    def send_file(self, ssock: ssl.SSLSocket, file_path: str) -> (float, float):
+    def send_file(self, ssock: ssl.SSLSocket, file_path: str) -> Tuple[float, float]:
         """
         Sends a file to a server over a secure SSL/TLS socket connection.
 
@@ -173,7 +187,9 @@ class TLSClient:
                 self.logger.error("Server not ready for file upload.")
                 return None, None
 
-            metadata = json.dumps({"file_name": file_name, "file_size": file_size}).encode()
+            metadata = json.dumps(
+                {"file_name": file_name, "file_size": file_size}
+            ).encode()
             ssock.sendall(metadata + b"\n")
 
             with open(file_path, "rb") as file:
@@ -185,7 +201,9 @@ class TLSClient:
             if resp.get("status") == "success":
                 upload_time = resp.get("upload_time")
                 throughput = resp.get("throughput")
-                self.logger.info(f"Upload completed: {upload_time:.6f} s, Throughput: {throughput:.2f} MB/s")
+                self.logger.info(
+                    f"Upload completed: {upload_time:.6f} s, Throughput: {throughput:.2f} MB/s"
+                )
                 return upload_time, throughput
             else:
                 self.logger.error("Server reported an error during upload.")
@@ -194,7 +212,9 @@ class TLSClient:
             self.logger.error(f"Upload failed: {e}")
             return None, None
 
-    def request_file(self, ssock: ssl.SSLSocket, file_name: str, save_dir: str) -> (float, float):
+    def request_file(
+        self, ssock: ssl.SSLSocket, file_name: str, save_dir: str
+    ) -> Tuple[float, float]:
         """
         Requests a file from the server and saves it locally.
 
@@ -212,7 +232,9 @@ class TLSClient:
                    Returns (None, None) if the operation fails.
         """
         try:
-            request = json.dumps({"action": "request_file", "file_name": file_name}).encode()
+            request = json.dumps(
+                {"action": "request_file", "file_name": file_name}
+            ).encode()
             ssock.sendall(request + b"\n")
             response = ssock.recv(4096).decode().strip()
             response_data = json.loads(response)
@@ -241,14 +263,20 @@ class TLSClient:
             end = time.perf_counter()
             download_time = end - start
             throughput = (expected_size / (1024 * 1024)) / download_time
-            self.logger.info(f"Download completed: {download_time:.6f} s, Throughput: {throughput:.2f} MB/s")
+            self.logger.info(
+                f"Download completed: {download_time:.6f} s, Throughput: {throughput:.2f} MB/s"
+            )
             return download_time, throughput
         except Exception as e:
             self.logger.error(f"Download failed: {e}")
             return None, None
 
-    def handle_communication(self, file_path: str = None, request_type: str = None,
-                             save_dir: str = "code/assets/client_directory"):
+    def handle_communication(
+        self,
+        file_path: str = None,
+        request_type: str = None,
+        save_dir: str = "code/assets/client_directory",
+    ):
         """
         Handles communication with the server for sending or receiving a file.
 
@@ -279,7 +307,9 @@ class TLSClient:
             elif request_type == "receive":
                 return self.request_file(ssock, os.path.basename(file_path), save_dir)
             else:
-                self.logger.error("Invalid request type. Use 'send', 'receive', or 'ping'.")
+                self.logger.error(
+                    "Invalid request type. Use 'send', 'receive', or 'ping'."
+                )
                 return None
         except Exception as e:
             self.logger.error(f"Error during communication: {e}")
@@ -319,17 +349,38 @@ def print_benchmark_report(benchmark_stats: BenchmarkStats):
     """
     rep = benchmark_stats.report()
     latency_data = [
-        ("Handshake Time", f"{rep['Handshake Time']:.6f} s" if rep["Handshake Time"] is not None else "N/A"),
+        (
+            "Handshake Time",
+            f"{rep['Handshake Time']:.6f} s"
+            if rep["Handshake Time"] is not None
+            else "N/A",
+        ),
         ("RTT", f"{rep['RTT']:.6f} s" if rep["RTT"] is not None else "N/A"),
         ("RTT Std. Dev.", f"{rep['RTT Std. Dev.']:.6f} s"),
     ]
     throughput_data = [
-        ("Upload Time", f"{rep['Upload Time']:.6f} s" if rep["Upload Time"] is not None else "N/A"),
         (
-        "Upload Throughput", f"{rep['Upload Throughput']:.2f} MB/s" if rep["Upload Throughput"] is not None else "N/A"),
-        ("Download Time", f"{rep['Download Time']:.6f} s" if rep["Download Time"] is not None else "N/A"),
-        ("Download Throughput",
-         f"{rep['Download Throughput']:.2f} MB/s" if rep["Download Throughput"] is not None else "N/A"),
+            "Upload Time",
+            f"{rep['Upload Time']:.6f} s" if rep["Upload Time"] is not None else "N/A",
+        ),
+        (
+            "Upload Throughput",
+            f"{rep['Upload Throughput']:.2f} MB/s"
+            if rep["Upload Throughput"] is not None
+            else "N/A",
+        ),
+        (
+            "Download Time",
+            f"{rep['Download Time']:.6f} s"
+            if rep["Download Time"] is not None
+            else "N/A",
+        ),
+        (
+            "Download Throughput",
+            f"{rep['Download Throughput']:.2f} MB/s"
+            if rep["Download Throughput"] is not None
+            else "N/A",
+        ),
     ]
     print("\n" + "=" * 40)
     print("Benchmark Report - Latency Metrics")
@@ -350,11 +401,21 @@ def print_detailed_upload_results(benchmark_stats: BenchmarkStats):
     """
     if benchmark_stats.upload_times and benchmark_stats.upload_throughputs:
         upload_table = [
-            (i + 1, f"{benchmark_stats.upload_times[i]:.6f} s", f"{benchmark_stats.upload_throughputs[i]:.2f} MB/s")
+            (
+                i + 1,
+                f"{benchmark_stats.upload_times[i]:.6f} s",
+                f"{benchmark_stats.upload_throughputs[i]:.2f} MB/s",
+            )
             for i in range(len(benchmark_stats.upload_times))
         ]
         print("\nDetailed Upload Results:")
-        print(tabulate(upload_table, headers=["Iteration", "Upload Time", "Upload Throughput"], tablefmt="grid"))
+        print(
+            tabulate(
+                upload_table,
+                headers=["Iteration", "Upload Time", "Upload Throughput"],
+                tablefmt="grid",
+            )
+        )
 
 
 def print_detailed_download_results(benchmark_stats: BenchmarkStats):
@@ -366,11 +427,21 @@ def print_detailed_download_results(benchmark_stats: BenchmarkStats):
     """
     if benchmark_stats.download_times and benchmark_stats.download_throughputs:
         download_table = [
-            (i + 1, f"{benchmark_stats.download_times[i]:.6f} s", f"{benchmark_stats.download_throughputs[i]:.2f} MB/s")
+            (
+                i + 1,
+                f"{benchmark_stats.download_times[i]:.6f} s",
+                f"{benchmark_stats.download_throughputs[i]:.2f} MB/s",
+            )
             for i in range(len(benchmark_stats.download_times))
         ]
         print("\nDetailed Download Results:")
-        print(tabulate(download_table, headers=["Iteration", "Download Time", "Download Throughput"], tablefmt="grid"))
+        print(
+            tabulate(
+                download_table,
+                headers=["Iteration", "Download Time", "Download Throughput"],
+                tablefmt="grid",
+            )
+        )
 
 
 def print_detailed_ping_times(benchmark_stats: BenchmarkStats):
@@ -381,7 +452,9 @@ def print_detailed_ping_times(benchmark_stats: BenchmarkStats):
         benchmark_stats (BenchmarkStats): The benchmark statistics object.
     """
     if benchmark_stats.rtt_samples:
-        ping_table = [(i + 1, f"{t:.6f} s") for i, t in enumerate(benchmark_stats.rtt_samples)]
+        ping_table = [
+            (i + 1, f"{t:.6f} s") for i, t in enumerate(benchmark_stats.rtt_samples)
+        ]
         print("\nDetailed Ping Times:")
         print(tabulate(ping_table, headers=["Iteration", "Ping Time"], tablefmt="grid"))
 
@@ -399,7 +472,9 @@ def run_benchmark():
       6. Prints the summarized and detailed benchmark reports.
     """
     benchmark = BenchmarkStats()
-    client = TLSClient(host="127.0.0.1", port=8443, certfile="code/assets/certificate.pem")
+    client = TLSClient(
+        host="127.0.0.1", port=8443, certfile="code/assets/certificate.pem"
+    )
 
     # Measure handshake time
     try:
@@ -427,7 +502,9 @@ def run_benchmark():
 
     # Upload test: 3 uploads
     for _ in range(3):
-        result = client.handle_communication(file_path=test_upload_file, request_type="send")
+        result = client.handle_communication(
+            file_path=test_upload_file, request_type="send"
+        )
         if result is not None:
             upload_time, throughput = result
             if upload_time is not None and throughput is not None:
@@ -437,8 +514,10 @@ def run_benchmark():
 
     # Download test: 3 downloads
     for _ in range(3):
-        result = client.handle_communication(file_path="code/assets/client_directory/Summer_1.jpg",
-                                             request_type="receive")
+        result = client.handle_communication(
+            file_path="code/assets/client_directory/Summer_1.jpg",
+            request_type="receive",
+        )
         if result is not None:
             download_time, throughput = result
             if download_time is not None and throughput is not None:

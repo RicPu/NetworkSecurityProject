@@ -33,7 +33,9 @@ def generate_test_file(file_path: str, size_mb: int):
     logger.info(f"File generated: {file_path} ({size_mb} MB)")
 
 
-def start_pyshark_capture(interface=r'\Device\NPF_Loopback', display_filter="udp.port == 4433", packet_count=4):
+def start_pyshark_capture(
+    interface=r"\Device\NPF_Loopback", display_filter="udp.port == 4433", packet_count=4
+):
     """
     Start a PyShark live capture on a separate thread.
     Since QUIC uses UDP (port 4433), the filter is set to 'udp.port == 4433'.
@@ -42,6 +44,7 @@ def start_pyshark_capture(interface=r'\Device\NPF_Loopback', display_filter="udp
     for each packet and then terminates, mostrando anche il numero totale di pacchetti catturati.
     """
     import asyncio
+
     # Create a new event loop for this thread and set it as the current loop.
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
@@ -151,7 +154,9 @@ class FileTransferClientProtocol(QuicConnectionProtocol):
                     file.flush()
                     os.fsync(file.fileno())
                 file_size = len(data)
-                throughput = (file_size / (1024 * 1024)) / transfer_time  # Calculate throughput in MB/s
+                throughput = (
+                    file_size / (1024 * 1024)
+                ) / transfer_time  # Calculate throughput in MB/s
                 logger.info(f"Download completed for file: {file_name}")
                 logger.info(f"Size: {file_size / (1024 * 1024):.2f} MB")
                 logger.info(f"Download transfer time: {transfer_time:.6f} s")
@@ -172,7 +177,7 @@ class FileTransferClientProtocol(QuicConnectionProtocol):
             start_time = time.perf_counter()
             writer.write(b"ping\n")
             writer.write_eof()
-            response = await reader.read()
+            await reader.read()
             end_time = time.perf_counter()
             rtt = end_time - start_time
             writer.close()
@@ -196,15 +201,17 @@ async def run_client():
         generate_test_file(test_file, 10)
 
     configuration = QuicConfiguration(is_client=True)
-    configuration.verify_mode = ssl.CERT_NONE  # Disable certificate verification for testing
+    configuration.verify_mode = (
+        ssl.CERT_NONE
+    )  # Disable certificate verification for testing
 
     # Establish QUIC connection
     handshake_start = time.perf_counter()
     async with connect(
-            "localhost",
-            4433,
-            configuration=configuration,
-            create_protocol=FileTransferClientProtocol,
+        "localhost",
+        4433,
+        configuration=configuration,
+        create_protocol=FileTransferClientProtocol,
     ) as protocol:
         await protocol.wait_connected()
         handshake_end = time.perf_counter()
@@ -215,7 +222,11 @@ async def run_client():
         for _ in range(1):
             ping_thread = threading.Thread(
                 target=start_pyshark_capture,
-                kwargs={'interface': r'\Device\NPF_Loopback', 'display_filter': "udp.port == 4433", 'packet_count': 4}
+                kwargs={
+                    "interface": r"\Device\NPF_Loopback",
+                    "display_filter": "udp.port == 4433",
+                    "packet_count": 4,
+                },
             )
             ping_thread.start()
             # Wait 1 second to ensure the capture is active
@@ -228,7 +239,11 @@ async def run_client():
         for _ in range(1):
             upload_thread = threading.Thread(
                 target=start_pyshark_capture,
-                kwargs={'interface': r'\Device\NPF_Loopback', 'display_filter': "udp.port == 4433", 'packet_count': 100}
+                kwargs={
+                    "interface": r"\Device\NPF_Loopback",
+                    "display_filter": "udp.port == 4433",
+                    "packet_count": 100,
+                },
             )
             upload_thread.start()
             await asyncio.sleep(1)
@@ -240,7 +255,11 @@ async def run_client():
         for _ in range(1):
             download_thread = threading.Thread(
                 target=start_pyshark_capture,
-                kwargs={'interface': r'\Device\NPF_Loopback', 'display_filter': "udp.port == 4433", 'packet_count': 100}
+                kwargs={
+                    "interface": r"\Device\NPF_Loopback",
+                    "display_filter": "udp.port == 4433",
+                    "packet_count": 100,
+                },
             )
             download_thread.start()
             await asyncio.sleep(1)

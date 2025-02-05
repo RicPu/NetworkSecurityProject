@@ -36,12 +36,16 @@ class FileTransferServerProtocol(QuicConnectionProtocol):
         Handles data received on streams and delegates processing to individual stream handlers.
         """
         if isinstance(event, StreamDataReceived):
-            logger.debug(f"Received data on stream {event.stream_id} ({len(event.data)} bytes)")
+            logger.debug(
+                f"Received data on stream {event.stream_id} ({len(event.data)} bytes)"
+            )
             # If there is no handler for this stream, create one
             if event.stream_id not in self.stream_handlers:
                 logger.info(f"Creating new handler for stream {event.stream_id}")
                 reader, writer = self._create_stream(event.stream_id)
-                handler = asyncio.create_task(self.handle_stream(reader, writer, event.stream_id))
+                handler = asyncio.create_task(
+                    self.handle_stream(reader, writer, event.stream_id)
+                )
                 self.stream_handlers[event.stream_id] = handler
             # Feed the incoming data into the appropriate stream reader
             self._stream_readers[event.stream_id].feed_data(event.data)
@@ -49,7 +53,9 @@ class FileTransferServerProtocol(QuicConnectionProtocol):
                 logger.debug(f"End of stream {event.stream_id}")
                 self._stream_readers[event.stream_id].feed_eof()
 
-    async def handle_stream(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter, stream_id: int):
+    async def handle_stream(
+        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter, stream_id: int
+    ):
         """
         Handle file transfer commands on a given stream.
 
@@ -83,13 +89,17 @@ class FileTransferServerProtocol(QuicConnectionProtocol):
                 end_time = time.perf_counter()
                 upload_time = end_time - start_time
                 file_size = len(content)
-                throughput = (file_size / (1024 * 1024)) / upload_time  # Throughput in MB/s
-                logger.info(f"File {filename} saved ({file_size} bytes) on disk in {upload_time:.6f} s")
+                throughput = (
+                    file_size / (1024 * 1024)
+                ) / upload_time  # Throughput in MB/s
+                logger.info(
+                    f"File {filename} saved ({file_size} bytes) on disk in {upload_time:.6f} s"
+                )
                 # Prepare a JSON response with the upload metrics
                 response_data = {
                     "status": "success",
                     "upload_time": upload_time,
-                    "throughput": throughput
+                    "throughput": throughput,
                 }
                 writer.write(json.dumps(response_data).encode())
 
@@ -147,7 +157,8 @@ async def main():
 
     logger.info("Starting QUIC server on [::]:4433")
     await serve(
-        "::", 4433,
+        "::",
+        4433,
         configuration=configuration,
         create_protocol=FileTransferServerProtocol,
     )

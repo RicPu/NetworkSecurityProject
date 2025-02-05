@@ -25,7 +25,9 @@ def generate_test_file(file_path: str, size_mb: int):
         size_mb (int): The size of the file in megabytes.
     """
     num_bytes = size_mb * 1024 * 1024  # Calculate the total number of bytes.
-    os.makedirs(os.path.dirname(file_path), exist_ok=True)  # Ensure the directory exists.
+    os.makedirs(
+        os.path.dirname(file_path), exist_ok=True
+    )  # Ensure the directory exists.
     with open(file_path, "wb") as f:
         f.write(os.urandom(num_bytes))  # Write random bytes to the file.
     logger.info(f"File generated: {file_path} ({size_mb} MB)")
@@ -78,13 +80,25 @@ class BenchmarkStats:
                   RTT (and its standard deviation), upload throughput, and download throughput.
         """
         return {
-            "Handshake Time": statistics.mean(self.handshake_times) if self.handshake_times else None,
-            "Upload Time": statistics.mean(self.upload_times) if self.upload_times else None,
-            "Download Time": statistics.mean(self.download_times) if self.download_times else None,
+            "Handshake Time": statistics.mean(self.handshake_times)
+            if self.handshake_times
+            else None,
+            "Upload Time": statistics.mean(self.upload_times)
+            if self.upload_times
+            else None,
+            "Download Time": statistics.mean(self.download_times)
+            if self.download_times
+            else None,
             "RTT": statistics.mean(self.rtt_samples) if self.rtt_samples else None,
-            "RTT Std. Dev.": statistics.stdev(self.rtt_samples) if len(self.rtt_samples) > 1 else 0.0,
-            "Upload Throughput": statistics.mean(self.upload_throughputs) if self.upload_throughputs else None,
-            "Download Throughput": statistics.mean(self.download_throughputs) if self.download_throughputs else None
+            "RTT Std. Dev.": statistics.stdev(self.rtt_samples)
+            if len(self.rtt_samples) > 1
+            else 0.0,
+            "Upload Throughput": statistics.mean(self.upload_throughputs)
+            if self.upload_throughputs
+            else None,
+            "Download Throughput": statistics.mean(self.download_throughputs)
+            if self.download_throughputs
+            else None,
         }
 
 
@@ -100,22 +114,47 @@ def print_benchmark_report_separated(benchmark_stats: BenchmarkStats):
 
     # Prepare latency data for display
     latency_data = [
-        ("Handshake Time", f"{rep['Handshake Time']:.6f} s" if rep['Handshake Time'] is not None else "N/A"),
-        ("RTT", f"{rep['RTT']:.6f} s" if rep['RTT'] is not None else "N/A"),
-        ("RTT Std. Dev.", f"{rep['RTT Std. Dev.']:.6f} s")
+        (
+            "Handshake Time",
+            f"{rep['Handshake Time']:.6f} s"
+            if rep["Handshake Time"] is not None
+            else "N/A",
+        ),
+        ("RTT", f"{rep['RTT']:.6f} s" if rep["RTT"] is not None else "N/A"),
+        ("RTT Std. Dev.", f"{rep['RTT Std. Dev.']:.6f} s"),
     ]
-    latency_table = tabulate(latency_data, headers=["Latency", "Value"], tablefmt="grid")
+    latency_table = tabulate(
+        latency_data, headers=["Latency", "Value"], tablefmt="grid"
+    )
 
     # Prepare throughput and transfer data for display
     throughput_data = [
-        ("Upload Time", f"{rep['Upload Time']:.6f} s" if rep['Upload Time'] is not None else "N/A"),
         (
-        "Upload Throughput", f"{rep['Upload Throughput']:.2f} MB/s" if rep['Upload Throughput'] is not None else "N/A"),
-        ("Download Time", f"{rep['Download Time']:.6f} s" if rep['Download Time'] is not None else "N/A"),
-        ("Download Throughput",
-         f"{rep['Download Throughput']:.2f} MB/s" if rep['Download Throughput'] is not None else "N/A")
+            "Upload Time",
+            f"{rep['Upload Time']:.6f} s" if rep["Upload Time"] is not None else "N/A",
+        ),
+        (
+            "Upload Throughput",
+            f"{rep['Upload Throughput']:.2f} MB/s"
+            if rep["Upload Throughput"] is not None
+            else "N/A",
+        ),
+        (
+            "Download Time",
+            f"{rep['Download Time']:.6f} s"
+            if rep["Download Time"] is not None
+            else "N/A",
+        ),
+        (
+            "Download Throughput",
+            f"{rep['Download Throughput']:.2f} MB/s"
+            if rep["Download Throughput"] is not None
+            else "N/A",
+        ),
     ]
-    throughput_table = tabulate(throughput_data, headers=["Throughput", "Value"], tablefmt="grid")
+    throughput_table = tabulate(
+        throughput_data, headers=["Throughput", "Value"], tablefmt="grid"
+    )
 
     # Print the two tables with headers
     print("\n" + "=" * 40)
@@ -138,24 +177,46 @@ def print_detailed_results(benchmark_stats: BenchmarkStats):
     # Detailed upload results
     if benchmark_stats.upload_times:
         upload_table = [
-            (i + 1, f"{benchmark_stats.upload_times[i]:.6f} s", f"{benchmark_stats.upload_throughputs[i]:.2f} MB/s")
+            (
+                i + 1,
+                f"{benchmark_stats.upload_times[i]:.6f} s",
+                f"{benchmark_stats.upload_throughputs[i]:.2f} MB/s",
+            )
             for i in range(len(benchmark_stats.upload_times))
         ]
         print("\nDetailed Upload Results:")
-        print(tabulate(upload_table, headers=["Iteration", "Upload Time", "Upload Throughput"], tablefmt="grid"))
+        print(
+            tabulate(
+                upload_table,
+                headers=["Iteration", "Upload Time", "Upload Throughput"],
+                tablefmt="grid",
+            )
+        )
 
     # Detailed download results
     if benchmark_stats.download_times:
         download_table = [
-            (i + 1, f"{benchmark_stats.download_times[i]:.6f} s", f"{benchmark_stats.download_throughputs[i]:.2f} MB/s")
+            (
+                i + 1,
+                f"{benchmark_stats.download_times[i]:.6f} s",
+                f"{benchmark_stats.download_throughputs[i]:.2f} MB/s",
+            )
             for i in range(len(benchmark_stats.download_times))
         ]
         print("\nDetailed Download Results:")
-        print(tabulate(download_table, headers=["Iteration", "Download Time", "Download Throughput"], tablefmt="grid"))
+        print(
+            tabulate(
+                download_table,
+                headers=["Iteration", "Download Time", "Download Throughput"],
+                tablefmt="grid",
+            )
+        )
 
     # Detailed ping (RTT) results
     if benchmark_stats.rtt_samples:
-        ping_table = [(i + 1, f"{t:.6f} s") for i, t in enumerate(benchmark_stats.rtt_samples)]
+        ping_table = [
+            (i + 1, f"{t:.6f} s") for i, t in enumerate(benchmark_stats.rtt_samples)
+        ]
         print("\nDetailed Ping Times:")
         print(tabulate(ping_table, headers=["Iteration", "Ping Time"], tablefmt="grid"))
 
@@ -219,7 +280,9 @@ class FileTransferClientProtocol(QuicConnectionProtocol):
         except Exception as e:
             logger.error(f"Upload failed: {str(e)}")
 
-    async def download(self, file_name: str, local_path: str, benchmark: BenchmarkStats = None):
+    async def download(
+        self, file_name: str, local_path: str, benchmark: BenchmarkStats = None
+    ):
         """
         Download a file from the server.
 
@@ -249,7 +312,9 @@ class FileTransferClientProtocol(QuicConnectionProtocol):
                     file.flush()
                     os.fsync(file.fileno())
                 file_size = len(data)
-                throughput = (file_size / (1024 * 1024)) / transfer_time  # Calculate throughput in MB/s
+                throughput = (
+                    file_size / (1024 * 1024)
+                ) / transfer_time  # Calculate throughput in MB/s
                 logger.info(f"Download completed for file: {file_name}")
                 logger.info(f"Size: {file_size / (1024 * 1024):.2f} MB")
                 logger.info(f"Download transfer time: {transfer_time:.6f} s")
@@ -273,7 +338,7 @@ class FileTransferClientProtocol(QuicConnectionProtocol):
             start_time = time.perf_counter()
             writer.write(b"ping\n")
             writer.write_eof()
-            response = await reader.read()
+            await reader.read()
             end_time = time.perf_counter()
             rtt = end_time - start_time
             writer.close()
@@ -299,15 +364,17 @@ async def run_benchmark():
 
     benchmark = BenchmarkStats()
     configuration = QuicConfiguration(is_client=True)
-    configuration.verify_mode = ssl.CERT_NONE  # Disable certificate verification for testing
+    configuration.verify_mode = (
+        ssl.CERT_NONE
+    )  # Disable certificate verification for testing
 
     # Measure handshake time
     handshake_start = time.perf_counter()
     async with connect(
-            "localhost",
-            4433,
-            configuration=configuration,
-            create_protocol=FileTransferClientProtocol,
+        "localhost",
+        4433,
+        configuration=configuration,
+        create_protocol=FileTransferClientProtocol,
     ) as protocol:
         await protocol.wait_connected()
         handshake_end = time.perf_counter()
@@ -329,7 +396,9 @@ async def run_benchmark():
 
         # Perform 3 download tests for "Summer_1.jpg"
         for _ in range(3):
-            await protocol.download("Summer_1.jpg", "code/assets/client_directory", benchmark)
+            await protocol.download(
+                "Summer_1.jpg", "code/assets/client_directory", benchmark
+            )
             await asyncio.sleep(0.2)
 
         protocol.close()
@@ -340,11 +409,24 @@ async def run_benchmark():
     print("Benchmark Report - Latency Metrics")
     print("=" * 40)
     latency_report = [
-        ("Handshake Time",
-         f"{statistics.mean(benchmark.handshake_times):.6f} s" if benchmark.handshake_times else "N/A"),
-        ("RTT", f"{statistics.mean(benchmark.rtt_samples):.6f} s" if benchmark.rtt_samples else "N/A"),
-        ("RTT Std. Dev.",
-         f"{statistics.stdev(benchmark.rtt_samples):.6f} s" if len(benchmark.rtt_samples) > 1 else "0.000000 s")
+        (
+            "Handshake Time",
+            f"{statistics.mean(benchmark.handshake_times):.6f} s"
+            if benchmark.handshake_times
+            else "N/A",
+        ),
+        (
+            "RTT",
+            f"{statistics.mean(benchmark.rtt_samples):.6f} s"
+            if benchmark.rtt_samples
+            else "N/A",
+        ),
+        (
+            "RTT Std. Dev.",
+            f"{statistics.stdev(benchmark.rtt_samples):.6f} s"
+            if len(benchmark.rtt_samples) > 1
+            else "0.000000 s",
+        ),
     ]
     print(tabulate(latency_report, headers=["Latency", "Value"], tablefmt="grid"))
 
@@ -352,12 +434,30 @@ async def run_benchmark():
     print("Benchmark Report - Throughput & Transfer Metrics")
     print("=" * 40)
     throughput_report = [
-        ("Upload Time", f"{statistics.mean(benchmark.upload_times):.6f} s" if benchmark.upload_times else "N/A"),
-        ("Upload Throughput",
-         f"{statistics.mean(benchmark.upload_throughputs):.2f} MB/s" if benchmark.upload_throughputs else "N/A"),
-        ("Download Time", f"{statistics.mean(benchmark.download_times):.6f} s" if benchmark.download_times else "N/A"),
-        ("Download Throughput",
-         f"{statistics.mean(benchmark.download_throughputs):.2f} MB/s" if benchmark.download_throughputs else "N/A")
+        (
+            "Upload Time",
+            f"{statistics.mean(benchmark.upload_times):.6f} s"
+            if benchmark.upload_times
+            else "N/A",
+        ),
+        (
+            "Upload Throughput",
+            f"{statistics.mean(benchmark.upload_throughputs):.2f} MB/s"
+            if benchmark.upload_throughputs
+            else "N/A",
+        ),
+        (
+            "Download Time",
+            f"{statistics.mean(benchmark.download_times):.6f} s"
+            if benchmark.download_times
+            else "N/A",
+        ),
+        (
+            "Download Throughput",
+            f"{statistics.mean(benchmark.download_throughputs):.2f} MB/s"
+            if benchmark.download_throughputs
+            else "N/A",
+        ),
     ]
     print(tabulate(throughput_report, headers=["Throughput", "Value"], tablefmt="grid"))
 

@@ -60,7 +60,9 @@ class TLSServer:
                 self.logger.info(f"Server listening on {self.host}:{self.port}")
 
                 # Wrap the TCP socket with TLS.
-                with self.context.wrap_socket(server_socket, server_side=True) as tls_socket:
+                with self.context.wrap_socket(
+                    server_socket, server_side=True
+                ) as tls_socket:
                     while True:
                         try:
                             client_socket, addr = tls_socket.accept()
@@ -156,7 +158,9 @@ class TLSServer:
                 while received_size < file_size:
                     chunk = client_socket.recv(min(4096, file_size - received_size))
                     if not chunk:
-                        self.logger.error("Connection closed unexpectedly during file reception.")
+                        self.logger.error(
+                            "Connection closed unexpectedly during file reception."
+                        )
                         raise ConnectionError("Incomplete file transfer.")
                     file.write(chunk)
                     received_size += len(chunk)
@@ -165,12 +169,16 @@ class TLSServer:
             if received_size == file_size:
                 upload_time = end_time - start_time
                 throughput = (file_size / (1024 * 1024)) / upload_time
-                self.logger.info(f"File received successfully: {save_path} in {upload_time:.6f} s (Throughput: {throughput:.2f} MB/s)")
-                response = json.dumps({
-                    "status": "success",
-                    "upload_time": upload_time,
-                    "throughput": throughput
-                })
+                self.logger.info(
+                    f"File received successfully: {save_path} in {upload_time:.6f} s (Throughput: {throughput:.2f} MB/s)"
+                )
+                response = json.dumps(
+                    {
+                        "status": "success",
+                        "upload_time": upload_time,
+                        "throughput": throughput,
+                    }
+                )
                 client_socket.sendall(response.encode() + b"\n")
             else:
                 self.logger.error("File transfer incomplete.")
@@ -193,10 +201,9 @@ class TLSServer:
         try:
             file_size = os.path.getsize(file_path)
             self.logger.info(f"Sending file: {file_path} ({file_size} bytes)")
-            metadata = json.dumps({
-                "file_name": os.path.basename(file_path),
-                "file_size": file_size
-            }).encode()
+            metadata = json.dumps(
+                {"file_name": os.path.basename(file_path), "file_size": file_size}
+            ).encode()
             client_socket.sendall(metadata + b"\n")
             with open(file_path, "rb") as file:
                 while chunk := file.read(4096):
