@@ -1,6 +1,4 @@
-"""
-Implementing the pyshark library for packet evaluation
-"""
+"""Implementing the pyshark library for packet evaluation - TCP+TLS"""
 
 import os
 import ssl

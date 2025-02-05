@@ -1,3 +1,5 @@
+"""Implementing the pyshark library for packet evaluation - QUIC"""
+
 import os
 import ssl
 import asyncio
