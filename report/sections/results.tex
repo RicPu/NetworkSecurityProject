@@ -19,13 +19,13 @@ The following table summarize the average benchmark metrics obtained for each pr
 \toprule
 \textbf{Metric} & \textbf{TCP+TLS} & \textbf{QUIC} \\
 \midrule
-Handshake Time & 0.00527 s & 0.01835 s \\
-Average RTT & 0.000733 s & 0.003252 s \\
-RTT Std. Dev. & 0.000310 s & 0.001287 s \\
-Average Upload Time & 0.03676 s & 9.89987 s \\
-Average Upload Throughput & 273.89 MB/s & 1.04 MB/s \\
-Average Download Time & 0.01583 s & 2.65564 s \\
-Average Download Throughput & 226.11 MB/s & 1.15 MB/s \\
+Handshake Time & 0.006017 s & 0.019117 s \\
+Average RTT & 0.000950 s & 0.005623 s \\
+RTT Std. Dev. & 0.000492 s & 0.003769 s \\
+Average Upload Time & 4.422592 s & 890.674859 s \\
+Average Upload Throughput & 246.68 MB/s & 1.15 MB/s \\
+Average Download Time & 4.284258 s & 885.309263 s \\
+Average Download Throughput & 254.56 MB/s & 1.16 MB/s \\
 \bottomrule
 \end{tabular}
 \caption{Comparison of network performance metrics between TCP+TLS and QUIC.}
@@ -45,9 +45,9 @@ The following tables present the download and upload performance for both TCP+TL
 \textbf{Iteration} & \multicolumn{2}{c}{\textbf{TCP + TLS}} & \multicolumn{2}{c}{\textbf{QUIC}} \\
 & Time (s) & Throughput (MB/s) & Time (s) & Throughput (MB/s) \\
 \midrule
-1 & 0.03384 & 295.55 & 8.67032 & 1.15 \\
-2 & 0.03543 & 282.29 & 8.78600 & 1.14 \\
-3 & 0.04101 & 243.83 & 12.24330 & 0.82 \\
+1 & 3.582199 & 285.86 & 894.224662 & 1.15 \\
+2 & 3.571778 & 286.69 & 889.082609 & 1.15 \\
+3 & 6.113801 & 167.49 & 888.717308 & 1.15 \\
 \bottomrule
 \end{tabular}
 \caption{Performance comparison of upload time and throughput between TCP+TLS and QUIC across three iterations.}
@@ -62,9 +62,9 @@ The following tables present the download and upload performance for both TCP+TL
 \textbf{Iteration} & \multicolumn{2}{c}{\textbf{TCP + TLS}} & \multicolumn{2}{c}{\textbf{QUIC}} \\
 & Time (s) & Throughput (MB/s) & Time (s) & Throughput (MB/s) \\
 \midrule
-1 & 0.02429 & 126.18 & 2.70168 & 1.13 \\
-2 & 0.00921 & 332.89 & 2.64954 & 1.16 \\
-3 & 0.01398 & 219.27 & 2.61568 & 1.17 \\
+1 & 5.917546 & 173.04 & 887.140160 & 1.15 \\
+2 & 3.449762 & 296.83 & 885.737737 & 1.16 \\
+3 & 3.485467 & 293.79 & 883.049894 & 1.16 \\
 \bottomrule
 \end{tabular}
 \caption{Performance comparison of download time and throughput between TCP+TLS and QUIC across three iterations.}
@@ -96,7 +96,7 @@ Separate captures were configured for TCP+TLS (filtering on \texttt{tcp.port == 
 
 \begin{figure}[h]
 	\centering
-	%\includegraphics[width=0.8\textwidth]{images/PysharkQUIC.png}
+	\includegraphics[width=0.8\textwidth]{images/PysharkQUIC.png}
 	\caption{Example of QUIC packets captured using PyShark.}
 \end{figure}
 
