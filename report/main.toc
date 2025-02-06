@@ -1,2 +1,24 @@
 \babel@toc {english}{}\relax 
 \contentsline {section}{\numberline {1}Introduction}{2}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Motivation}{2}{subsection.1.1}%
+\contentsline {section}{\numberline {2}Background}{3}{section.2}%
+\contentsline {subsection}{\numberline {2.1}The Layered Approach: TCP + TLS}{3}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}QUIC}{3}{subsection.2.2}%
+\contentsline {section}{\numberline {3}Methodology and Implementation}{5}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Workflow and Functional Dynamics}{5}{subsection.3.1}%
+\contentsline {paragraph}{Security Foundations.}{5}{section*.2}%
+\contentsline {subsection}{\numberline {3.2}Implementation Details}{5}{subsection.3.2}%
+\contentsline {subsubsection}{\numberline {3.2.1}TCP + TLS}{5}{subsubsection.3.2.1}%
+\contentsline {paragraph}{Server.}{5}{section*.3}%
+\contentsline {paragraph}{Client.}{5}{section*.4}%
+\contentsline {subsubsection}{\numberline {3.2.2}QUIC}{6}{subsubsection.3.2.2}%
+\contentsline {paragraph}{Server.}{6}{section*.5}%
+\contentsline {paragraph}{Client.}{6}{section*.6}%
+\contentsline {subsubsection}{\numberline {3.2.3}PyShark Analysis}{6}{subsubsection.3.2.3}%
+\contentsline {section}{\numberline {4}Results}{7}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Summary of Results}{7}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Detailed Results}{7}{subsection.4.2}%
+\contentsline {paragraph}{Upload Results.}{8}{section*.7}%
+\contentsline {paragraph}{Download Results.}{8}{section*.8}%
+\contentsline {subsection}{\numberline {4.3}PyShark-based Traffic Analysis}{8}{subsection.4.3}%
+\contentsline {section}{\numberline {5}Conclusions}{10}{section.5}%

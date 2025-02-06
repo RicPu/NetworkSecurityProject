@@ -1,12 +1,39 @@
-\section{Methodology}
-This section details the implementation of the TCP + TLS and QUIC file transfer clients and servers. Both systems were developed in Python, with careful attention to fairness in testing conditions (e.g., identical file sizes, network emulation settings).
+\section{Methodology and Implementation}
+This section details the methodology used for the development and evaluation of the file transfer application implementations using both TCP+TLS and QUIC protocols, and describes the corresponding server and client implementations. Both systems were developed in Python, with careful attention to fairness in testing conditions (e.g., identical file sizes, network emulation settings).
 
 \subsection{Workflow and Functional Dynamics}
-The TCP + TLS implementation relies on synchronous, sequential operations. Clients initiate connections through Python's socket and ssl libraries, wrapping a TCP socket with TLS encryption after the initial handshake. File transfers are structured around JSON-formatted commands (e.g., {"action" : "send\_file"}), with data split into 4 KB chunks for transmission. This approach ensures simplicity but struggles with concurrency, as each connection handles only one stream at a time.
+The TCP+TLS implementation relies on synchronous, sequential operations. Clients initiate connections through Python's \texttt{socket} and \texttt{ssl} libraries, wrapping a TCP socket with TLS encryption after the initial handshake. File transfers are structured around JSON-formatted commands (e.g., \{"action" : "send\_file"\}), with data split into 4 KB chunks for transmission. This approach ensures simplicity but struggles with concurrency, as each connection handles only one stream at a time.
 
-QUIC, powered by the aioquic library, embraces asynchronism. Clients and servers communicate over multiplexed streams within a single QUIC connection, enabling simultaneous uploads and downloads without head-of-line blocking. Commands are sent as plaintext (e.g., upload filename), reducing protocol overhead. The asynchronous model, managed via Python's asyncio, allows QUIC to handle multiple streams concurrently, making it inherently scalable for high-throughput scenarios.
+In contrast, QUIC, powered by the \texttt{aioquic} library, embraces asynchronism. Clients and servers communicate over multiplexed streams within a single QUIC connection, enabling simultaneous uploads and downloads without head-of-line blocking. Commands are sent as plaintext (e.g., upload filename), reducing protocol overhead. The asynchronous model, managed via Python's \texttt{asyncio}, allows QUIC to handle multiple streams concurrently, making it inherently scalable for high-throughput scenarios.
 
-\subsection{Security Foundations}
-Both systems use self-signed RSA certificates, generated automatically, to authenticate servers and establish TLS 1.3 encryption. However, their security workflow differ subtly. In TCP + TLS, the client skips hostname verification for simplicity, accepting any server certificate - a pragmatic choice for testing, but not suitable for production. QUIC enforces certificate validation by default, requiring clients to trust the server's certificate explicitly. This reflects QUIC's design philosophy, where security is mandatory rather than optional.
+\paragraph{Security Foundations.} Both systems use self-signed RSA certificates, generated automatically, to authenticate servers and establish TLS 1.3 encryption. However, their security workflows differ subtly. In TCP+TLS, the client skips hostname verification for simplicity, accepting any server certificate -- a pragmatic choice for testing, though not suitable for production environments. In contrast, QUIC enforces certificate validation by default, requiring clients to trust the server's certificate explicitly. This reflects QUIC's design philosophy, where security is mandatory rather than optional. Encryption parameters are aligned for fairness: AES-GCM secures data in transit, and elliptic-curve Diffie-Hellman ensures forward secrecy. Despite these similarities, QUIC's integration of TLS 1.3 into its handshake eliminates vulnerabilities associated with middleboxes (e.g., firewalls that mishandle TCP/TLS extensions).
 
-Encryption parameters are aligned for fairness: AES-GCM secures data in transit, and elliptic-curve Diffie-Hellman ensures forward secrecy. Despite these similarities, QUIC's integration of TLS 1.3 into its handshake eliminates vulnerabilities associated with middleboxes, such as firewalls that mishandle TCP/TLS extensions.
+\subsection{Implementation Details}
+Python was chosen as the implementation language due to its ease of use, rich ecosystem of libraries, and rapid prototyping capabilities. Libraries such as \texttt{socket} and \texttt{ssl} provide robust support for TCP+TLS communications, while the asynchronous capabilities of \texttt{asyncio} together with \texttt{aioquic} were used for a modern implementation of the QUIC protocol. This choice enables a direct comparison between the traditional synchronous model and the modern asynchronous paradigm.
+
+\subsubsection{TCP + TLS}
+\paragraph{Server.} The TCP+TLS server is implemented using Python's \texttt{socket} and \texttt{ssl} libraries. The server creates a TCP socket, binds it to a specified host and port, and then wraps the socket with an SSL context to enforce TLS encryption. The server supports multiple operations including file upload, file download, and simple ping requests. Commands are exchanged in JSON format, and file transfers are performed in 4 KB chunks to ensure manageability and facilitate the measurement of performance metrics such as throughput and transfer time.
+
+\paragraph{Client.} The TCP+TLS client mirrors the server's functionality. It establishes a secure connection to the server using an SSL-wrapped socket and sends JSON-formatted commands to initiate file uploads or downloads, or to perform ping tests. The client measures key performance metrics such as handshake time, round-trip time (RTT), and throughput. This implementation serves as a baseline for comparing the performance and efficiency of the traditional TCP+TLS approach against the QUIC protocol, where a similar approach was used to ensure a direct comparison.
+
+\subsubsection{QUIC}
+\paragraph{Server.} The QUIC server is implemented with the \texttt{aioquic} library, which provides support for QUIC and HTTP/3 protocols. This server handles connections asynchronously, allowing multiple independent streams within a single QUIC connection. Each stream can be used to process different commands such as file upload, download, or ping, eliminating the head-of-line blocking issue inherent in TCP. The server integrates TLS 1.3 directly into the QUIC handshake, reducing connection setup time and enhancing security. Performance metrics are recorded for each operation to allow for a detailed comparison with the TCP+TLS implementation.
+
+\paragraph{Client.} The QUIC client utilizes \texttt{aioquic} and Python's \texttt{asyncio} framework to establish a secure, asynchronous connection with the server. It creates bidirectional streams for each operation (upload, download, ping) and uses plaintext commands to minimize overhead. The client captures performance metrics such as handshake duration, RTT, and throughput for each transfer. Additionally, the QUIC client supports concurrent stream processing, which is particularly beneficial for high-throughput or low-latency applications. These measurements are then compared with those obtained from the TCP+TLS implementation.
+
+\subsubsection{PyShark Analysis}
+PyShark is employed to capture and analyze network packets in real time, providing insights into the actual data exchanged during protocol operations. Two distinct configurations were implemented:
+
+\begin{itemize}
+\item \textbf{TCP+TLS:} A separate thread initiates a live capture on the loopback interface (using a filter such as \texttt{tcp.port == 8443}) to verify the sequence of the TLS handshake and file transfer operations.
+
+\item \textbf{QUIC:} The capture is configured with the filter \texttt{udp.port == 4433} to analyze QUIC traffic, observing the handling of multiple streams.
+\end{itemize}
+
+Captured data (timestamps, highest protocol layer, number of packets) is logged to support the analysis of performance and protocol behavior.
+
+\begin{figure}[h]
+	\centering
+	%\includegraphics[width=0.8\textwidth]{images/PysharkTCP.png}
+	\caption{Example of TCP+TLS packets captured using PyShark.}
+\end{figure}
