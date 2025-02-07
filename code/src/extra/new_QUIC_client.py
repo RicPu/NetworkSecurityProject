@@ -12,7 +12,7 @@ from aioquic.h3.events import DataReceived
 from aioquic.quic.configuration import QuicConfiguration
 
 URL = "https://localhost:4433/Winter_1.jpg"
-UPLOAD_FILE = r"code\assets\client_directory\Winter_1.jpg"  # Replace with your file
+UPLOAD_FILE = r"code\assets\client_directory\Winter_1.jpg"
 INSECURE = True
 
 logger = logging.getLogger("client")
@@ -35,8 +35,8 @@ class FileTransferClient(QuicConnectionProtocol):
 
         self._quic._loss._pacer = False
         stream_id = self._quic.get_next_available_stream_id()
-        chunk_size = 1048576  # QUIC-friendly chunk size
-        chunks = [data[i:i+chunk_size] for i in range(0, len(data), chunk_size)]
+        chunk_size = 1048576
+        chunks = [data[i : i + chunk_size] for i in range(0, len(data), chunk_size)]
 
         # Start throughput timer
         start_time = time.time()

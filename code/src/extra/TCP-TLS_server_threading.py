@@ -239,7 +239,6 @@ if __name__ == "__main__":
         keyfile="code/assets/private_key.pem",
     )
 
-    # causes a huge slowing down (form 300MB/s to 1MB/s), see TCP_test_server
     server_thread = threading.Thread(target=server.start, daemon=True)
     server_thread.start()
 
